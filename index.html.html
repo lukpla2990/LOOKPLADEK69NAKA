@@ -1,0 +1,1493 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>เว็บทวนศัพท์ 1000 คำ — TGAT / TCASter — by lookpla dek69</title>
+  <style>
+    /* Color theme: soft pink & white (soothing) */
+    :root{
+      --bg-1: #fff6f9;        /* very pale pink background */
+      --panel-bg: #ffffff;    /* white panel */
+      --accent: #ff8fb3;      /* soft pink */
+      --accent-2: #ffd9e8;    /* lighter pink */
+      --muted: #5a3342;       /* muted warm mauve for text */
+      --soft-border: rgba(255,143,179,0.10);
+      --correct: #ff6f98;     /* pink-coral for correct */
+      --wrong: #c62828;       /* red for wrong */
+      --shadow: 0 8px 30px rgba(120,60,80,0.06);
+    }
+
+    body{
+      font-family: "Noto Sans", "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg, var(--bg-1) 0%, #fff 100%);
+      margin:0;
+      padding:20px;
+      color:var(--muted);
+    }
+
+    .wrap{
+      max-width:980px;
+      margin:0 auto;
+      background:var(--panel-bg);
+      border-radius:12px;
+      padding:20px;
+      box-shadow:var(--shadow);
+      border:1px solid var(--soft-border);
+    }
+
+    h1{
+      margin:0 0 6px;
+      font-size:22px;
+      color: #5b2b3f;
+    }
+
+    .byline{
+      margin-top:6px;
+      color:#8f435f;
+      font-size:13px;
+      font-weight:600;
+    }
+
+    p.meta{
+      margin:8px 0 14px;
+      color:#7a576b;
+    }
+
+    #question{font-size:20px;margin:16px 0;color:#4d2238}
+    .pos{font-size:13px;color:#8a5670;margin-left:10px}
+    .options{display:flex;flex-direction:column;gap:10px}
+    .opt{
+      padding:12px;border-radius:10px;border:1px solid rgba(200,120,150,0.12);
+      background:linear-gradient(180deg,#fff,#fffafc);
+      text-align:left;cursor:pointer;color:#4a1f34;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset;
+    }
+    .opt:hover{transform:translateY(-2px);transition:all .12s ease}
+    .opt.correct{background:linear-gradient(180deg,var(--correct),#ff9ab7);color:#fff;border-color:var(--correct)}
+    .opt.wrong{background:linear-gradient(180deg,var(--wrong),#e53935);color:#fff;border-color:var(--wrong)}
+
+    .controls{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+    .btn{
+      padding:9px 14px;border-radius:10px;border:0;background:var(--accent);color:#fff;cursor:pointer;
+      box-shadow:0 4px 10px rgba(255,143,179,0.10);
+      font-weight:600;
+    }
+    .btn.secondary{background:linear-gradient(180deg,var(--accent-2),#ffeef6);color:#5a2337}
+    .btn.ghost{background:transparent;border:1px solid rgba(143,67,95,0.10);color:#7a445b}
+
+    .stat{margin-left:auto;color:#5a2337;font-weight:600}
+    .small{font-size:13px;color:#7a576b}
+    #timer{font-weight:800;color:var(--accent)}
+    #timerWrap{color:#7a445b;margin-left:12px;font-weight:600}
+
+    #review{margin-top:14px;background:#fff6fb;border:1px solid rgba(255,200,220,0.14);padding:12px;border-radius:10px;display:none}
+    #wrongList{max-height:260px;overflow:auto}
+    .badge{display:inline-block;padding:5px 10px;border-radius:12px;background:var(--accent);color:#fff;font-size:12px;font-weight:700}
+    footer{margin-top:16px;color:#8a5a73;font-size:13px;text-align:center}
+
+    /* Responsive tweaks */
+    @media(max-width:640px){
+      .wrap{padding:14px}
+      .opt{padding:10px}
+      .btn{padding:8px 10px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap" role="main">
+    <h1>เว็บทวนศัพท์ 1000 คำ</h1>
+    <div class="byline">by lookpla dek69 — สู้ๆนะทุกคน</div>
+    <p class="meta">คำศัพท์จากรายการที่คุณส่ง (TCASter-like). โหมด: 3 ตัวเลือกต่อคำ — เวลาจำกัด 30 วินาที/คำ — มีระบบบันทึกคำผิดและทบทวน</p>
+
+    <div id="statusBar" class="small">
+      คำที่ <span id="progress">0</span> / <span id="total">0</span>
+      <span class="stat">คะแนน: <span id="score">0</span></span>
+      <span id="timerWrap" class="stat">เวลาเหลือ: <span id="timer">30</span>s</span>
+    </div>
+
+    <div id="quiz">
+      <div id="question" aria-live="polite"></div>
+      <div class="options" id="options" role="list"></div>
+
+      <div class="controls">
+        <button id="nextBtn" class="btn secondary" disabled>ถัดไป ►</button>
+        <button id="restartBtn" class="btn">เริ่มใหม่</button>
+        <button id="reviewBtn" class="btn secondary">ทบทวนคำผิด</button>
+        <button id="exportBtn" class="btn ghost">Export ผิด (JSON)</button>
+      </div>
+
+      <div id="review" aria-hidden="true">
+        <h3>คำที่ตอบผิด <span class="badge" id="wrongCount">0</span></h3>
+        <div id="wrongList"></div>
+        <div style="margin-top:8px;text-align:right">
+          <button id="clearWrong" class="btn ghost">ลบทั้งหมด</button>
+          <button id="closeReview" class="btn">ปิด</button>
+        </div>
+      </div>
+    </div>
+
+    <footer>เก็บสถานะในเบราว์เซอร์ (localStorage) — by lookpla dek69 — สู้ๆนะทุกคน</footer>
+  </div>
+
+  <script>
+    /************************************************************************
+     * Embedded vocabulary: full list of words you provided (1000 entries).
+     * This file is ready to use: save as index.html and open in browser.
+     ************************************************************************/
+
+    const words = [
+      {"word":"accept","pos":"v.","thai":"ยอมรับ"},
+      {"word":"altogether","pos":"adv.","thai":"โดยสิ้นเชิง"},
+      {"word":"all together","pos":"phrase.","thai":"พร้อมกันทั้งหมด"},
+      {"word":"altar","pos":"n.","thai":"แท่นบูชา"},
+      {"word":"alter","pos":"v.","thai":"เปลี่ยนแปลง"},
+      {"word":"abandon","pos":"v.","thai":"ละทิ้ง"},
+      {"word":"ability","pos":"n.","thai":"ความสามารถ"},
+      {"word":"absence","pos":"n.","thai":"การไม่อยู่"},
+      {"word":"absolute","pos":"adj.","thai":"สมบูรณ์"},
+      {"word":"abstract","pos":"adj.","thai":"นามธรรม"},
+      {"word":"abundant","pos":"adj.","thai":"มากมาย"},
+      {"word":"access","pos":"n./v.","thai":"การเข้าถึง / เข้าถึง"},
+      {"word":"accident","pos":"n.","thai":"อุบัติเหตุ"},
+      {"word":"accomplish","pos":"v.","thai":"บรรลุผล"},
+      {"word":"accurate","pos":"adj.","thai":"ถูกต้อง แม่นยำ"},
+      {"word":"accuse","pos":"v.","thai":"กล่าวหา"},
+      {"word":"achieve","pos":"v.","thai":"บรรลุ"},
+      {"word":"acknowledge","pos":"v.","thai":"ยอมรับ"},
+      {"word":"acquire","pos":"v.","thai":"ได้รับ"},
+      {"word":"adapt","pos":"v.","thai":"ปรับตัว"},
+      {"word":"adjust","pos":"v.","thai":"ปรับเปลี่ยน"},
+      {"word":"admire","pos":"v.","thai":"ชื่นชม"},
+      {"word":"admit","pos":"v.","thai":"ยอมรับ"},
+      {"word":"adopt","pos":"v.","thai":"นำมาใช้ / รับเลี้ยง"},
+      {"word":"advantage","pos":"n.","thai":"ข้อดี"},
+      {"word":"affect","pos":"v.","thai":"ส่งผลกระทบ"},
+      {"word":"affordable","pos":"adj.","thai":"ที่สามารถจ่ายได้"},
+      {"word":"aggressive","pos":"adj.","thai":"ก้าวร้าว"},
+      {"word":"agree","pos":"v.","thai":"เห็นด้วย"},
+      {"word":"amaze","pos":"v.","thai":"ทำให้ประหลาดใจ"},
+      {"word":"ambition","pos":"n.","thai":"ความทะเยอทะยาน"},
+      {"word":"amount","pos":"n.","thai":"ปริมาณ"},
+      {"word":"analyze","pos":"v.","thai":"วิเคราะห์"},
+      {"word":"ancient","pos":"adj.","thai":"โบราณ"},
+      {"word":"announce","pos":"v.","thai":"ประกาศ"},
+      {"word":"annual","pos":"adj.","thai":"รายปี"},
+      {"word":"anxious","pos":"adj.","thai":"กังวล"},
+      {"word":"apologize","pos":"v.","thai":"ขอโทษ"},
+      {"word":"apparent","pos":"adj.","thai":"ชัดเจน"},
+      {"word":"appeal","pos":"v./n.","thai":"ดึงดูด / คำอุทธรณ์"},
+      {"word":"apply","pos":"v.","thai":"สมัคร / นำมาใช้"},
+      {"word":"appoint","pos":"v.","thai":"แต่งตั้ง"},
+      {"word":"appreciate","pos":"v.","thai":"ซาบซึ้ง"},
+      {"word":"approach","pos":"v./n.","thai":"เข้าใกล้ / วิธีการ"},
+      {"word":"appropriate","pos":"adj.","thai":"เหมาะสม"},
+      {"word":"approve","pos":"v.","thai":"อนุมัติ"},
+      {"word":"argue","pos":"v.","thai":"โต้แย้ง"},
+      {"word":"arrange","pos":"v.","thai":"จัดเตรียม"},
+      {"word":"arrive","pos":"v.","thai":"มาถึง"},
+      {"word":"article","pos":"n.","thai":"บทความ"},
+      {"word":"aspect","pos":"n.","thai":"แง่มุม"},
+      {"word":"assist","pos":"v.","thai":"ช่วยเหลือ"},
+      {"word":"assume","pos":"v.","thai":"คาดว่า / สันนิษฐาน"},
+      {"word":"attempt","pos":"v./n.","thai":"พยายาม"},
+      {"word":"attend","pos":"v.","thai":"เข้าร่วม"},
+      {"word":"attract","pos":"v.","thai":"ดึงดูด"},
+      {"word":"authority","pos":"n.","thai":"อำนาจ"},
+      {"word":"available","pos":"adj.","thai":"ที่ใช้ได้ / ที่มีอยู่"},
+      {"word":"average","pos":"adj./n.","thai":"โดยเฉลี่ย / ค่าเฉลี่ย"},
+      {"word":"avoid","pos":"v.","thai":"หลีกเลี่ยง"},
+      {"word":"aware","pos":"adj.","thai":"ตระหนัก"},
+      {"word":"balance","pos":"n./v.","thai":"สมดุล / ทรงตัว"},
+      {"word":"behavior","pos":"n.","thai":"พฤติกรรม"},
+      {"word":"benefit","pos":"n./v.","thai":"ผลประโยชน์ / เป็นประโยชน์"},
+      {"word":"blame","pos":"v./n.","thai":"ตำหนิ / ความผิด"},
+      {"word":"borrow","pos":"v.","thai":"ยืม"},
+      {"word":"boundary","pos":"n.","thai":"ขอบเขต"},
+      {"word":"brilliant","pos":"adj.","thai":"ฉลาด / ยอดเยี่ยม"},
+      {"word":"budget","pos":"n.","thai":"งบประมาณ"},
+      {"word":"calculate","pos":"v.","thai":"คำนวณ"},
+      {"word":"capacity","pos":"n.","thai":"ความจุ / ความสามารถ"},
+      {"word":"celebrate","pos":"v.","thai":"ฉลอง"},
+      {"word":"challenge","pos":"n./v.","thai":"ความท้าทาย / ท้าทาย"},
+      {"word":"character","pos":"n.","thai":"ตัวละคร / บุคลิกภาพ"},
+      {"word":"circumstance","pos":"n.","thai":"สถานการณ์"},
+      {"word":"clarify","pos":"v.","thai":"ชี้แจง"},
+      {"word":"collapse","pos":"v.","thai":"ล้มลง / พัง"},
+      {"word":"collect","pos":"v.","thai":"รวบรวม"},
+      {"word":"combine","pos":"v.","thai":"รวมกัน"},
+      {"word":"comment","pos":"n./v.","thai":"ความคิดเห็น / แสดงความคิดเห็น"},
+      {"word":"common","pos":"adj.","thai":"ทั่วไป / ร่วมกัน"},
+      {"word":"community","pos":"n.","thai":"ชุมชน"},
+      {"word":"compare","pos":"v.","thai":"เปรียบเทียบ"},
+      {"word":"complain","pos":"v.","thai":"บ่น"},
+      {"word":"complete","pos":"v./adj.","thai":"ทำให้เสร็จ / สมบูรณ์"},
+      {"word":"complex","pos":"adj.","thai":"ซับซ้อน"},
+      {"word":"concentrate","pos":"v.","thai":"ตั้งใจ"},
+      {"word":"concern","pos":"n./v.","thai":"ความกังวล / กังวล"},
+      {"word":"conclude","pos":"v.","thai":"สรุป"},
+      {"word":"condition","pos":"n.","thai":"เงื่อนไข / สภาพ"},
+      {"word":"confident","pos":"adj.","thai":"มั่นใจ"},
+      {"word":"confuse","pos":"v.","thai":"ทำให้งง"},
+      {"word":"consequence","pos":"n.","thai":"ผลลัพธ์"},
+      {"word":"consider","pos":"v.","thai":"พิจารณา"},
+      {"word":"consume","pos":"v.","thai":"บริโภค"},
+      {"word":"contact","pos":"n./v.","thai":"การติดต่อ / ติดต่อ"},
+      {"word":"contain","pos":"v.","thai":"บรรจุ / ประกอบด้วย"},
+      {"word":"continue","pos":"v.","thai":"ดำเนินต่อไป"},
+      {"word":"contribute","pos":"v.","thai":"มีส่วนช่วย"},
+      {"word":"convince","pos":"v.","thai":"โน้มน้าว"},
+      {"word":"cooperate","pos":"v.","thai":"ร่วมมือ"},
+      {"word":"create","pos":"v.","thai":"สร้าง"},
+      {"word":"criticize","pos":"v.","thai":"วิจารณ์"},
+      {"word":"crucial","pos":"adj.","thai":"สำคัญมาก"},
+      {"word":"culture","pos":"n.","thai":"วัฒนธรรม"},
+      {"word":"curious","pos":"adj.","thai":"อยากรู้อยากเห็น"},
+      {"word":"current","pos":"adj./n.","thai":"ปัจจุบัน / กระแสน้ำ"},
+      {"word":"damage","pos":"v./n.","thai":"ทำลาย / ความเสียหาย"},
+      {"word":"danger","pos":"n.","thai":"อันตราย"},
+      {"word":"deal","pos":"v./n.","thai":"จัดการ / ข้อตกลง"},
+      {"word":"debate","pos":"n./v.","thai":"การโต้วาที / ถกเถียง"},
+      {"word":"decade","pos":"n.","thai":"ทศวรรษ"},
+      {"word":"decide","pos":"v.","thai":"ตัดสินใจ"},
+      {"word":"declare","pos":"v.","thai":"ประกาศ"},
+      {"word":"decline","pos":"v./n.","thai":"ลดลง / การลดลง"},
+      {"word":"decorate","pos":"v.","thai":"ตกแต่ง"},
+      {"word":"defeat","pos":"v./n.","thai":"เอาชนะ / ความพ่ายแพ้"},
+      {"word":"defend","pos":"v.","thai":"ป้องกัน"},
+      {"word":"define","pos":"v.","thai":"ให้คำนิยาม"},
+      {"word":"degree","pos":"n.","thai":"ระดับ / ปริญญา / องศา"},
+      {"word":"delay","pos":"v./n.","thai":"ล่าช้า / ความล่าช้า"},
+      {"word":"delight","pos":"n./v.","thai":"ความปิติ / ทำให้ยินดี"},
+      {"word":"deliver","pos":"v.","thai":"ส่ง / ถ่ายทอด"},
+      {"word":"demand","pos":"v./n.","thai":"เรียกร้อง / ความต้องการ"},
+      {"word":"demonstrate","pos":"v.","thai":"สาธิต / แสดงให้เห็น"},
+      {"word":"deny","pos":"v.","thai":"ปฏิเสธ"},
+      {"word":"depend","pos":"v.","thai":"พึ่งพา"},
+      {"word":"describe","pos":"v.","thai":"บรรยาย"},
+      {"word":"deserve","pos":"v.","thai":"สมควรได้รับ"},
+      {"word":"design","pos":"v./n.","thai":"ออกแบบ / แบบแผน"},
+      {"word":"desire","pos":"n./v.","thai":"ความปรารถนา / ปรารถนา"},
+      {"word":"destroy","pos":"v.","thai":"ทำลาย"},
+      {"word":"detail","pos":"n./v.","thai":"รายละเอียด / อธิบายโดยละเอียด"},
+      {"word":"develop","pos":"v.","thai":"พัฒนา"},
+      {"word":"device","pos":"n.","thai":"อุปกรณ์"},
+      {"word":"devote","pos":"v.","thai":"อุทิศ"},
+      {"word":"dialogue","pos":"n.","thai":"บทสนทนา"},
+      {"word":"difference","pos":"n.","thai":"ความแตกต่าง"},
+      {"word":"difficult","pos":"adj.","thai":"ยาก"},
+      {"word":"direct","pos":"v./adj.","thai":"กำกับ / โดยตรง"},
+      {"word":"disagree","pos":"v.","thai":"ไม่เห็นด้วย"},
+      {"word":"disappear","pos":"v.","thai":"หายไป"},
+      {"word":"disaster","pos":"n.","thai":"ภัยพิบัติ"},
+      {"word":"discipline","pos":"n.","thai":"วินัย"},
+      {"word":"discover","pos":"v.","thai":"ค้นพบ"},
+      {"word":"discuss","pos":"v.","thai":"อภิปราย"},
+      {"word":"disease","pos":"n.","thai":"โรค"},
+      {"word":"display","pos":"v./n.","thai":"แสดง / การแสดงผล"},
+      {"word":"distance","pos":"n.","thai":"ระยะทาง"},
+      {"word":"distinguish","pos":"v.","thai":"แยกแยะ"},
+      {"word":"distribute","pos":"v.","thai":"แจกจ่าย"},
+      {"word":"diverse","pos":"adj.","thai":"หลากหลาย"},
+      {"word":"divide","pos":"v.","thai":"แบ่ง"},
+      {"word":"document","pos":"n./v.","thai":"เอกสาร / บันทึกเป็นหลักฐาน"},
+      {"word":"dominate","pos":"v.","thai":"ครอบงำ"},
+      {"word":"doubt","pos":"n./v.","thai":"ความสงสัย / สงสัย"},
+      {"word":"drama","pos":"n.","thai":"ละคร"},
+      {"word":"earn","pos":"v.","thai":"หาเงิน / ได้รับ"},
+      {"word":"economy","pos":"n.","thai":"เศรษฐกิจ"},
+      {"word":"educate","pos":"v.","thai":"ให้การศึกษา"},
+      {"word":"efficient","pos":"adj.","thai":"มีประสิทธิภาพ"},
+      {"word":"effort","pos":"n.","thai":"ความพยายาม"},
+      {"word":"eliminate","pos":"v.","thai":"กำจัด"},
+      {"word":"embarrass","pos":"v.","thai":"ทำให้อับอาย"},
+      {"word":"emotion","pos":"n.","thai":"อารมณ์"},
+      {"word":"emphasize","pos":"v.","thai":"เน้น"},
+      {"word":"encourage","pos":"v.","thai":"สนับสนุน / ให้กำลังใจ"},
+      {"word":"enemy","pos":"n.","thai":"ศัตรู"},
+      {"word":"energy","pos":"n.","thai":"พลังงาน"},
+      {"word":"engage","pos":"v.","thai":"มีส่วนร่วม"},
+      {"word":"enhance","pos":"v.","thai":"เพิ่มพูน / ทำให้ดีขึ้น"},
+      {"word":"enormous","pos":"adj.","thai":"ใหญ่โต"},
+      {"word":"ensure","pos":"v.","thai":"ทำให้มั่นใจ"},
+      {"word":"enter","pos":"v.","thai":"เข้า"},
+      {"word":"environment","pos":"n.","thai":"สิ่งแวดล้อม"},
+      {"word":"equal","pos":"adj.","thai":"เท่าเทียม"},
+      {"word":"error","pos":"n.","thai":"ข้อผิดพลาด"},
+      {"word":"escape","pos":"v./n.","thai":"หลบหนี / การหลบหนี"},
+      {"word":"establish","pos":"v.","thai":"ก่อตั้ง"},
+      {"word":"estimate","pos":"v./n.","thai":"ประมาณ / ค่าประมาณ"},
+      {"word":"evaluate","pos":"v.","thai":"ประเมิน"},
+      {"word":"event","pos":"n.","thai":"เหตุการณ์"},
+      {"word":"evidence","pos":"n.","thai":"หลักฐาน"},
+      {"word":"evolve","pos":"v.","thai":"พัฒนา / วิวัฒนาการ"},
+      {"word":"examine","pos":"v.","thai":"ตรวจสอบ"},
+      {"word":"example","pos":"n.","thai":"ตัวอย่าง"},
+      {"word":"exchange","pos":"v./n.","thai":"แลกเปลี่ยน / การแลกเปลี่ยน"},
+      {"word":"exclude","pos":"v.","thai":"ตัดออก / ไม่รวม"},
+      {"word":"excuse","pos":"n./v.","thai":"ข้อแก้ตัว / ให้อภัย"},
+      {"word":"exercise","pos":"n./v.","thai":"การออกกำลังกาย / ออกกำลังกาย"},
+      {"word":"exhibit","pos":"v./n.","thai":"แสดง / นิทรรศการ"},
+      {"word":"exist","pos":"v.","thai":"มีอยู่"},
+      {"word":"expand","pos":"v.","thai":"ขยาย"},
+      {"word":"expect","pos":"v.","thai":"คาดหวัง"},
+      {"word":"experience","pos":"n./v.","thai":"ประสบการณ์ / ประสบ"},
+      {"word":"experiment","pos":"n./v.","thai":"การทดลอง / ทดลอง"},
+      {"word":"expert","pos":"n./adj.","thai":"ผู้เชี่ยวชาญ / เชี่ยวชาญ"},
+      {"word":"explain","pos":"v.","thai":"อธิบาย"},
+      {"word":"explore","pos":"v.","thai":"สำรวจ"},
+      {"word":"express","pos":"v./adj.","thai":"แสดงออก / ด่วน"},
+      {"word":"extend","pos":"v.","thai":"ขยาย / ยืด"},
+      {"word":"extraordinary","pos":"adj.","thai":"พิเศษ / ไม่ธรรมดา"},
+      {"word":"extreme","pos":"adj./n.","thai":"สุดขีด / ความรุนแรง"},
+      {"word":"factor","pos":"n.","thai":"ปัจจัย"},
+      {"word":"fail","pos":"v.","thai":"ล้มเหลว"},
+      {"word":"familiar","pos":"adj.","thai":"คุ้นเคย"},
+      {"word":"famous","pos":"adj.","thai":"มีชื่อเสียง"},
+      {"word":"fear","pos":"n./v.","thai":"ความกลัว / กลัว"},
+      {"word":"feature","pos":"n.","thai":"ลักษณะเด่น"},
+      {"word":"feedback","pos":"n.","thai":"ข้อเสนอแนะ"},
+      {"word":"female","pos":"n./adj.","thai":"เพศหญิง / ที่เป็นหญิง"},
+      {"word":"figure","pos":"n.","thai":"ตัวเลข / รูปร่าง"},
+      {"word":"final","pos":"adj.","thai":"สุดท้าย"},
+      {"word":"finance","pos":"n.","thai":"การเงิน"},
+      {"word":"flexible","pos":"adj.","thai":"ยืดหยุ่น"},
+      {"word":"focus","pos":"v./n.","thai":"มุ่งเน้น / จุดสนใจ"},
+      {"word":"force","pos":"n./v.","thai":"กำลัง / บังคับ"},
+      {"word":"foreign","pos":"adj.","thai":"ต่างประเทศ"},
+      {"word":"forgive","pos":"v.","thai":"ให้อภัย"},
+      {"word":"formal","pos":"adj.","thai":"เป็นทางการ"},
+      {"word":"former","pos":"adj.","thai":"ก่อนหน้านี้"},
+      {"word":"fortunate","pos":"adj.","thai":"โชคดี"},
+      {"word":"frequent","pos":"adj.","thai":"บ่อยครั้ง"},
+      {"word":"frustrated","pos":"adj.","thai":"หงุดหงิด / ท้อแท้"},
+      {"word":"function","pos":"n./v.","thai":"หน้าที่ / ทำหน้าที่"},
+      {"word":"fundamental","pos":"adj.","thai":"พื้นฐาน"},
+      {"word":"gain","pos":"v./n.","thai":"ได้รับ / ผลประโยชน์"},
+      {"word":"gather","pos":"v.","thai":"รวบรวม"},
+      {"word":"gender","pos":"n.","thai":"เพศ"},
+      {"word":"generate","pos":"v.","thai":"ผลิต / สร้าง"},
+      {"word":"generous","pos":"adj.","thai":"ใจกว้าง"},
+      {"word":"global","pos":"adj.","thai":"ทั่วโลก"},
+      {"word":"goal","pos":"n.","thai":"เป้าหมาย"},
+      {"word":"govern","pos":"v.","thai":"ปกครอง"},
+      {"word":"gradual","pos":"adj.","thai":"ค่อยเป็นค่อยไป"},
+      {"word":"graduate","pos":"v./n.","thai":"สำเร็จการศึกษา / บัณฑิต"},
+      {"word":"grant","pos":"v./n.","thai":"ให้ / ทุน"},
+      {"word":"guarantee","pos":"v./n.","thai":"รับประกัน / การรับประกัน"},
+      {"word":"habit","pos":"n.","thai":"นิสัย"},
+      {"word":"harm","pos":"v./n.","thai":"ทำร้าย / อันตราย"},
+      {"word":"harvest","pos":"v./n.","thai":"เก็บเกี่ยว / การเก็บเกี่ยว"},
+      {"word":"health","pos":"n.","thai":"สุขภาพ"},
+      {"word":"helpful","pos":"adj.","thai":"มีประโยชน์"},
+      {"word":"hesitate","pos":"v.","thai":"ลังเล"},
+      {"word":"highlight","pos":"v./n.","thai":"เน้น / จุดเด่น"},
+      {"word":"historical","pos":"adj.","thai":"เกี่ยวกับประวัติศาสตร์"},
+      {"word":"honest","pos":"adj.","thai":"ซื่อสัตย์"},
+      {"word":"honor","pos":"n./v.","thai":"เกียรติยศ / ให้เกียรติ"},
+      {"word":"host","pos":"n./v.","thai":"เจ้าภาพ / เป็นเจ้าภาพ"},
+      {"word":"humble","pos":"adj.","thai":"ถ่อมตัว"},
+      {"word":"humor","pos":"n.","thai":"อารมณ์ขัน"},
+      {"word":"hurry","pos":"v./n.","thai":"รีบเร่ง / ความรีบ"},
+      {"word":"hypothesis","pos":"n.","thai":"สมมติฐาน"},
+      {"word":"ideal","pos":"adj.","thai":"ซึ่งเหมาะสมที่สุด"},
+      {"word":"identify","pos":"v.","thai":"ระบุ / แสดงตัว"},
+      {"word":"identity","pos":"n.","thai":"อัตลักษณ์"},
+      {"word":"idle","pos":"adj.","thai":"อยู่เฉยๆ / เกียจคร้าน"},
+      {"word":"ignorance","pos":"n.","thai":"ความไม่รู้"},
+      {"word":"ignore","pos":"v.","thai":"เพิกเฉย"},
+      {"word":"illustrate","pos":"v.","thai":"อธิบายด้วยภาพ / แสดงให้เห็น"},
+      {"word":"image","pos":"n.","thai":"ภาพ / ภาพลักษณ์"},
+      {"word":"imitate","pos":"v.","thai":"เลียนแบบ"},
+      {"word":"immediate","pos":"adj.","thai":"ทันทีทันใด"},
+      {"word":"immense","pos":"adj.","thai":"ใหญ่โตมาก"},
+      {"word":"impact","pos":"n./v.","thai":"ผลกระทบ / ส่งผลกระทบ"},
+      {"word":"impart","pos":"v.","thai":"ถ่ายทอด / แบ่งปัน"},
+      {"word":"impatient","pos":"adj.","thai":"ใจร้อน / ไม่อดทน"},
+      {"word":"impede","pos":"v.","thai":"ขัดขวาง"},
+      {"word":"implication","pos":"n.","thai":"ผลสืบเนื่อง / ความหมายโดยนัย"},
+      {"word":"imply","pos":"v.","thai":"บ่งบอก / มีนัยว่า"},
+      {"word":"import","pos":"v./n.","thai":"นำเข้า / สินค้านำเข้า"},
+      {"word":"important","pos":"adj.","thai":"สำคัญ"},
+      {"word":"impose","pos":"v.","thai":"กำหนด / บังคับใช้"},
+      {"word":"impress","pos":"v.","thai":"ประทับใจ"},
+      {"word":"impression","pos":"n.","thai":"ความประทับใจ"},
+      {"word":"impressive","pos":"adj.","thai":"น่าประทับใจ"},
+      {"word":"improve","pos":"v.","thai":"ปรับปรุง"},
+      {"word":"improvement","pos":"n.","thai":"การปรับปรุง"},
+      {"word":"inability","pos":"n.","thai":"ความไร้ความสามารถ"},
+      {"word":"inadequate","pos":"adj.","thai":"ไม่เพียงพอ"},
+      {"word":"incident","pos":"n.","thai":"เหตุการณ์"},
+      {"word":"include","pos":"v.","thai":"รวม"},
+      {"word":"income","pos":"n.","thai":"รายได้"},
+      {"word":"incredible","pos":"adj.","thai":"เหลือเชื่อ"},
+      {"word":"independent","pos":"adj.","thai":"เป็นอิสระ"},
+      {"word":"indicate","pos":"v.","thai":"แสดง / ชี้ให้เห็น"},
+      {"word":"individual","pos":"n./adj.","thai":"บุคคล / เฉพาะบุคคล"},
+      {"word":"indoor","pos":"adj.","thai":"ในร่ม"},
+      {"word":"industry","pos":"n.","thai":"อุตสาหกรรม"},
+      {"word":"inevitable","pos":"adj.","thai":"หลีกเลี่ยงไม่ได้"},
+      {"word":"infect","pos":"v.","thai":"ทำให้ติดเชื้อ"},
+      {"word":"infection","pos":"n.","thai":"การติดเชื้อ"},
+      {"word":"influence","pos":"n./v.","thai":"อิทธิพล / มีอิทธิพล"},
+      {"word":"inform","pos":"v.","thai":"แจ้ง / ให้ข้อมูล"},
+      {"word":"information","pos":"n.","thai":"ข้อมูล"},
+      {"word":"ingredient","pos":"n.","thai":"ส่วนผสม"},
+      {"word":"inhabit","pos":"v.","thai":"อาศัยอยู่"},
+      {"word":"initial","pos":"adj.","thai":"แรกเริ่ม"},
+      {"word":"initiative","pos":"n.","thai":"ความริเริ่ม"},
+      {"word":"injure","pos":"v.","thai":"ทำให้บาดเจ็บ"},
+      {"word":"injury","pos":"n.","thai":"การบาดเจ็บ"},
+      {"word":"injustice","pos":"n.","thai":"ความอยุติธรรม"},
+      {"word":"inner","pos":"adj.","thai":"ภายใน"},
+      {"word":"innocent","pos":"adj.","thai":"ไร้เดียงสา / ไม่มีความผิด"},
+      {"word":"input","pos":"n.","thai":"ข้อมูลนำเข้า / สิ่งที่ใส่เข้าไป"},
+      {"word":"inquire","pos":"v.","thai":"สอบถาม"},
+      {"word":"insight","pos":"n.","thai":"ความเข้าใจลึกซึ้ง"},
+      {"word":"insist","pos":"v.","thai":"ยืนกราน"},
+      {"word":"inspect","pos":"v.","thai":"ตรวจสอบ"},
+      {"word":"inspire","pos":"v.","thai":"สร้างแรงบันดาลใจ"},
+      {"word":"instance","pos":"n.","thai":"ตัวอย่าง"},
+      {"word":"instead","pos":"adv.","thai":"แทนที่"},
+      {"word":"instinct","pos":"n.","thai":"สัญชาตญาณ"},
+      {"word":"institute","pos":"n./v.","thai":"สถาบัน / ก่อตั้ง"},
+      {"word":"instruction","pos":"n.","thai":"คำสั่ง / คำแนะนำ"},
+      {"word":"instrument","pos":"n.","thai":"เครื่องมือ / เครื่องดนตรี"},
+      {"word":"insurance","pos":"n.","thai":"ประกันภัย"},
+      {"word":"intelligence","pos":"n.","thai":"สติปัญญา"},
+      {"word":"intend","pos":"v.","thai":"ตั้งใจ"},
+      {"word":"intense","pos":"adj.","thai":"เข้มข้น / รุนแรง"},
+      {"word":"intention","pos":"n.","thai":"ความตั้งใจ"},
+      {"word":"interaction","pos":"n.","thai":"ปฏิสัมพันธ์"},
+      {"word":"interest","pos":"n./v.","thai":"ความสนใจ / ทำให้สนใจ"},
+      {"word":"interesting","pos":"adj.","thai":"น่าสนใจ"},
+      {"word":"interfere","pos":"v.","thai":"แทรกแซง"},
+      {"word":"internal","pos":"adj.","thai":"ภายใน"},
+      {"word":"international","pos":"adj.","thai":"ระหว่างประเทศ"},
+      {"word":"internet","pos":"n.","thai":"อินเทอร์เน็ต"},
+      {"word":"interpret","pos":"v.","thai":"แปล / ตีความ"},
+      {"word":"interrupt","pos":"v.","thai":"ขัดจังหวะ"},
+      {"word":"interview","pos":"n./v.","thai":"สัมภาษณ์"},
+      {"word":"introduce","pos":"v.","thai":"แนะนำ"},
+      {"word":"invention","pos":"n.","thai":"สิ่งประดิษฐ์"},
+      {"word":"invest","pos":"v.","thai":"ลงทุน"},
+      {"word":"investigate","pos":"v.","thai":"สืบสวน"},
+      {"word":"investment","pos":"n.","thai":"การลงทุน"},
+      {"word":"invisible","pos":"adj.","thai":"มองไม่เห็น"},
+      {"word":"invitation","pos":"n.","thai":"คำเชิญ"},
+      {"word":"invite","pos":"v.","thai":"เชิญ"},
+      {"word":"involve","pos":"v.","thai":"เกี่ยวข้อง"},
+      {"word":"iron","pos":"n./v.","thai":"เหล็ก / รีดผ้า"},
+      {"word":"irregular","pos":"adj.","thai":"ไม่ปกติ"},
+      {"word":"irritate","pos":"v.","thai":"ทำให้รำคาญ"},
+      {"word":"island","pos":"n.","thai":"เกาะ"},
+      {"word":"issue","pos":"n./v.","thai":"ประเด็น / ปัญหา / ออก"},
+      {"word":"item","pos":"n.","thai":"รายการ"},
+      {"word":"idealism","pos":"n.","thai":"ลัทธิอุดมคติ"},
+      {"word":"ignorant","pos":"adj.","thai":"โง่เขลา / ไม่รู้"},
+      {"word":"immigrate","pos":"v.","thai":"อพยพเข้า"},
+      {"word":"innovation","pos":"n.","thai":"นวัตกรรม"},
+      {"word":"inquiry","pos":"n.","thai":"การสอบถาม"},
+      {"word":"intellectual","pos":"adj./n.","thai":"ฉลาด / ปัญญาชน"},
+      {"word":"irony","pos":"n.","thai":"การประชดประชัน"},
+      {"word":"machine","pos":"n.","thai":"เครื่องจักร"},
+      {"word":"mad","pos":"adj.","thai":"บ้า / โกรธ"},
+      {"word":"magazine","pos":"n.","thai":"นิตยสาร"},
+      {"word":"magic","pos":"n./adj.","thai":"เวทมนตร์ / มหัศจรรย์"},
+      {"word":"magnet","pos":"n.","thai":"แม่เหล็ก"},
+      {"word":"mail","pos":"n./v.","thai":"จดหมาย / ส่งไปรษณีย์"},
+      {"word":"main","pos":"adj.","thai":"หลัก / สำคัญที่สุด"},
+      {"word":"maintain","pos":"v.","thai":"รักษา / ดำรงไว้"},
+      {"word":"major","pos":"adj./n.","thai":"สำคัญ / วิชาเอก"},
+      {"word":"make","pos":"v.","thai":"ทำ"},
+      {"word":"male","pos":"adj./n.","thai":"เพศชาย"},
+      {"word":"mall","pos":"n.","thai":"ห้างสรรพสินค้า"},
+      {"word":"man","pos":"n.","thai":"ผู้ชาย / มนุษย์"},
+      {"word":"manage","pos":"v.","thai":"จัดการ"},
+      {"word":"management","pos":"n.","thai":"การบริหาร"},
+      {"word":"manager","pos":"n.","thai":"ผู้จัดการ"},
+      {"word":"manner","pos":"n.","thai":"วิธี / มารยาท"},
+      {"word":"manual","pos":"adj./n.","thai":"ด้วยมือ / คู่มือ"},
+      {"word":"manufacture","pos":"v./n.","thai":"ผลิต / การผลิต"},
+      {"word":"many","pos":"adj./pron.","thai":"จำนวนมาก"},
+      {"word":"map","pos":"n.","thai":"แผนที่"},
+      {"word":"march","pos":"v./n.","thai":"เดินขบวน / การเดินแถว"},
+      {"word":"mark","pos":"n./v.","thai":"เครื่องหมาย / ทำเครื่องหมาย"},
+      {"word":"market","pos":"n.","thai":"ตลาด"},
+      {"word":"marriage","pos":"n.","thai":"การแต่งงาน"},
+      {"word":"married","pos":"adj.","thai":"แต่งงานแล้ว"},
+      {"word":"mask","pos":"n./v.","thai":"หน้ากาก / ปิดบัง"},
+      {"word":"mass","pos":"n./adj.","thai":"มวล / จำนวนมาก"},
+      {"word":"master","pos":"n./v.","thai":"เจ้านาย / ชำนาญ"},
+      {"word":"match","pos":"n./v.","thai":"การแข่งขัน / เข้ากัน"},
+      {"word":"material","pos":"n./adj.","thai":"วัสดุ / เกี่ยวกับวัตถุ"},
+      {"word":"math","pos":"n.","thai":"คณิตศาสตร์"},
+      {"word":"matter","pos":"n./v.","thai":"เรื่อง / สำคัญ"},
+      {"word":"mature","pos":"adj./v.","thai":"โตเต็มที่ / เติบโต"},
+      {"word":"maximum","pos":"adj./n.","thai":"สูงสุด"},
+      {"word":"maybe","pos":"adv.","thai":"บางที"},
+      {"word":"meal","pos":"n.","thai":"มื้ออาหาร"},
+      {"word":"mean","pos":"v./adj.","thai":"หมายถึง / ใจร้าย"},
+      {"word":"meaning","pos":"n.","thai":"ความหมาย"},
+      {"word":"measure","pos":"v./n.","thai":"วัด / มาตรการ"},
+      {"word":"measurement","pos":"n.","thai":"การวัด"},
+      {"word":"meat","pos":"n.","thai":"เนื้อสัตว์"},
+      {"word":"media","pos":"n.","thai":"สื่อ"},
+      {"word":"medical","pos":"adj.","thai":"ทางการแพทย์"},
+      {"word":"medicine","pos":"n.","thai":"ยา"},
+      {"word":"medium","pos":"n./adj.","thai":"สื่อกลาง / ขนาดกลาง"},
+      {"word":"meet","pos":"v.","thai":"พบ"},
+      {"word":"meeting","pos":"n.","thai":"การประชุม"},
+      {"word":"melt","pos":"v.","thai":"ละลาย"},
+      {"word":"member","pos":"n.","thai":"สมาชิก"},
+      {"word":"membership","pos":"n.","thai":"การเป็นสมาชิก"},
+      {"word":"memory","pos":"n.","thai":"ความทรงจำ / หน่วยความจำ"},
+      {"word":"mental","pos":"adj.","thai":"เกี่ยวกับจิตใจ"},
+      {"word":"mention","pos":"v./n.","thai":"กล่าวถึง"},
+      {"word":"menu","pos":"n.","thai":"เมนู"},
+      {"word":"mercy","pos":"n.","thai":"ความเมตตา"},
+      {"word":"message","pos":"n./v.","thai":"ข้อความ / ส่งข้อความ"},
+      {"word":"metal","pos":"n.","thai":"โลหะ"},
+      {"word":"method","pos":"n.","thai":"วิธีการ"},
+      {"word":"middle","pos":"n./adj.","thai":"ตรงกลาง / กลาง"},
+      {"word":"midnight","pos":"n.","thai":"เที่ยงคืน"},
+      {"word":"might","pos":"v./n.","thai":"อาจจะ / อำนาจ"},
+      {"word":"mild","pos":"adj.","thai":"อ่อน / ไม่รุนแรง"},
+      {"word":"military","pos":"adj./n.","thai":"เกี่ยวกับทหาร / กองทัพ"},
+      {"word":"milk","pos":"n./v.","thai":"นม / รีดนม"},
+      {"word":"mill","pos":"n.","thai":"โรงโม่ / โรงงาน"},
+      {"word":"million","pos":"n.","thai":"ล้าน"},
+      {"word":"mind","pos":"n./v.","thai":"จิตใจ / สนใจ"},
+      {"word":"mine","pos":"pron./n.","thai":"ของฉัน / เหมือง"},
+      {"word":"minister","pos":"n.","thai":"รัฐมนตรี / รัฐมนตรีศาสนา"},
+      {"word":"minor","pos":"adj./n.","thai":"เล็กน้อย / ผู้เยาว์"},
+      {"word":"minute","pos":"n.","thai":"นาที"},
+      {"word":"mirror","pos":"n.","thai":"กระจก"},
+      {"word":"miss","pos":"v./n.","thai":"คิดถึง / พลาด"},
+      {"word":"mission","pos":"n.","thai":"ภารกิจ"},
+      {"word":"mistake","pos":"n./v.","thai":"ความผิดพลาด / เข้าใจผิด"},
+      {"word":"mix","pos":"v.","thai":"ผสม"},
+      {"word":"mixture","pos":"n.","thai":"ส่วนผสม"},
+      {"word":"mobile","pos":"adj./n.","thai":"เคลื่อนที่ได้ / โทรศัพท์มือถือ"},
+      {"word":"mode","pos":"n.","thai":"รูปแบบ"},
+      {"word":"model","pos":"n.","thai":"แบบจำลอง / นางแบบ"},
+      {"word":"moderate","pos":"adj.","thai":"ปานกลาง"},
+      {"word":"modern","pos":"adj.","thai":"ทันสมัย"},
+      {"word":"modest","pos":"adj.","thai":"ถ่อมตัว / พอประมาณ"},
+      {"word":"moment","pos":"n.","thai":"ช่วงเวลา"},
+      {"word":"money","pos":"n.","thai":"เงิน"},
+      {"word":"monitor","pos":"n./v.","thai":"หน้าจอ / เฝ้าตรวจสอบ"},
+      {"word":"month","pos":"n.","thai":"เดือน"},
+      {"word":"mood","pos":"n.","thai":"อารมณ์"},
+      {"word":"moon","pos":"n.","thai":"ดวงจันทร์"},
+      {"word":"moral","pos":"adj./n.","thai":"มีศีลธรรม / คติสอนใจ"},
+      {"word":"more","pos":"adj./adv.","thai":"มากกว่า"},
+      {"word":"morning","pos":"n.","thai":"ตอนเช้า"},
+      {"word":"most","pos":"adj./adv.","thai":"มากที่สุด"},
+      {"word":"mother","pos":"n.","thai":"แม่"},
+      {"word":"motion","pos":"n.","thai":"การเคลื่อนไหว"},
+      {"word":"motivate","pos":"v.","thai":"กระตุ้น / แรงจูงใจ"},
+      {"word":"motor","pos":"n.","thai":"เครื่องยนต์"},
+      {"word":"mountain","pos":"n.","thai":"ภูเขา"},
+      {"word":"mouth","pos":"n.","thai":"ปาก"},
+      {"word":"name","pos":"n./v.","thai":"ชื่อ / ตั้งชื่อ"},
+      {"word":"naked","pos":"adj.","thai":"เปลือย"},
+      {"word":"narrow","pos":"adj.","thai":"แคบ"},
+      {"word":"nation","pos":"n.","thai":"ประเทศ / ชาติ"},
+      {"word":"national","pos":"adj./n.","thai":"ระดับชาติ / พลเมือง"},
+      {"word":"native","pos":"adj./n.","thai":"พื้นเมือง / ชาวพื้นเมือง"},
+      {"word":"natural","pos":"adj.","thai":"ธรรมชาติ"},
+      {"word":"nature","pos":"n.","thai":"ธรรมชาติ / ลักษณะ"},
+      {"word":"navy","pos":"n.","thai":"ทหารเรือ"},
+      {"word":"near","pos":"adj./adv./prep.","thai":"ใกล้"},
+      {"word":"nearly","pos":"adv.","thai":"เกือบ"},
+      {"word":"neat","pos":"adj.","thai":"เรียบร้อย"},
+      {"word":"necessary","pos":"adj.","thai":"จำเป็น"},
+      {"word":"neck","pos":"n.","thai":"คอ"},
+      {"word":"need","pos":"v./n.","thai":"ต้องการ / ความจำเป็น"},
+      {"word":"needle","pos":"n.","thai":"เข็ม"},
+      {"word":"negative","pos":"adj./n.","thai":"เชิงลบ / ปฏิเสธ"},
+      {"word":"neglect","pos":"v./n.","thai":"เพิกเฉย / การละเลย"},
+      {"word":"negotiate","pos":"v.","thai":"เจรจา"},
+      {"word":"neighbor","pos":"n.","thai":"เพื่อนบ้าน"},
+      {"word":"neighborhood","pos":"n.","thai":"ละแวกบ้าน"},
+      {"word":"neither","pos":"det./pron./adv.","thai":"ไม่ทั้งสอง"},
+      {"word":"nerve","pos":"n.","thai":"เส้นประสาท / ความกล้า"},
+      {"word":"nervous","pos":"adj.","thai":"ประหม่า / กังวล"},
+      {"word":"net","pos":"n.","thai":"ตาข่าย / สุทธิ"},
+      {"word":"network","pos":"n.","thai":"เครือข่าย"},
+      {"word":"never","pos":"adv.","thai":"ไม่เคย"},
+      {"word":"new","pos":"adj.","thai":"ใหม่"},
+      {"word":"newly","pos":"adv.","thai":"เมื่อเร็ว ๆ นี้"},
+      {"word":"news","pos":"n.","thai":"ข่าว"},
+      {"word":"newspaper","pos":"n.","thai":"หนังสือพิมพ์"},
+      {"word":"next","pos":"adj./adv.","thai":"ถัดไป"},
+      {"word":"nice","pos":"adj.","thai":"ดี / น่ารัก"},
+      {"word":"night","pos":"n.","thai":"กลางคืน"},
+      {"word":"nightmare","pos":"n.","thai":"ฝันร้าย"},
+      {"word":"noble","pos":"adj.","thai":"สูงส่ง / มีเกียรติ"},
+      {"word":"noise","pos":"n.","thai":"เสียงดัง"},
+      {"word":"noisy","pos":"adj.","thai":"มีเสียงดัง"},
+      {"word":"none","pos":"pron.","thai":"ไม่มีเลย"},
+      {"word":"nonsense","pos":"n.","thai":"ไร้สาระ"},
+      {"word":"noon","pos":"n.","thai":"เที่ยงวัน"},
+      {"word":"nor","pos":"conj.","thai":"ไม่…เช่นกัน"},
+      {"word":"normal","pos":"adj.","thai":"ปกติ"},
+      {"word":"normally","pos":"adv.","thai":"โดยปกติ"},
+      {"word":"north","pos":"n./adj./adv.","thai":"ทิศเหนือ / ทางเหนือ"},
+      {"word":"northern","pos":"adj.","thai":"ทางเหนือ"},
+      {"word":"nose","pos":"n.","thai":"จมูก"},
+      {"word":"serve","pos":"v.","thai":"ให้บริการ / เสิร์ฟ"},
+      {"word":"service","pos":"n.","thai":"บริการ"},
+      {"word":"set","pos":"v./n.","thai":"วาง / ชุด"},
+      {"word":"settle","pos":"v.","thai":"ตั้งถิ่นฐาน / แก้ปัญหา"},
+      {"word":"several","pos":"adj.","thai":"หลาย"},
+      {"word":"shake","pos":"v.","thai":"สั่น / เขย่า"},
+      {"word":"shall","pos":"v.","thai":"จะ (รูปทางการ)"},
+      {"word":"shame","pos":"n.","thai":"ความอับอาย"},
+      {"word":"shape","pos":"n.","thai":"รูปร่าง"},
+      {"word":"share","pos":"v./n.","thai":"แบ่งปัน / หุ้น"},
+      {"word":"sharp","pos":"adj.","thai":"แหลม / คม"},
+      {"word":"she","pos":"pron.","thai":"หล่อน"},
+      {"word":"sheep","pos":"n.","thai":"แกะ"},
+      {"word":"sheet","pos":"n.","thai":"แผ่น / ผ้าปูที่นอน"},
+      {"word":"shelf","pos":"n.","thai":"ชั้นวาง"},
+      {"word":"shine","pos":"v.","thai":"ส่องแสง"},
+      {"word":"ship","pos":"n.","thai":"เรือ"},
+      {"word":"shirt","pos":"n.","thai":"เสื้อเชิ้ต"},
+      {"word":"shock","pos":"n./v.","thai":"ช็อก / ทำให้ตกใจ"},
+      {"word":"shoe","pos":"n.","thai":"รองเท้า"},
+      {"word":"shoot","pos":"v.","thai":"ยิง / ถ่ายภาพ"},
+      {"word":"shop","pos":"n./v.","thai":"ร้านค้า / ซื้อของ"},
+      {"word":"short","pos":"adj.","thai":"สั้น"},
+      {"word":"should","pos":"v.","thai":"ควร"},
+      {"word":"shoulder","pos":"n.","thai":"ไหล่"},
+      {"word":"shout","pos":"v./n.","thai":"ตะโกน / เสียงตะโกน"},
+      {"word":"show","pos":"v./n.","thai":"แสดง / รายการ"},
+      {"word":"shut","pos":"v.","thai":"ปิด"},
+      {"word":"sick","pos":"adj.","thai":"ป่วย"},
+      {"word":"side","pos":"n.","thai":"ด้าน"},
+      {"word":"sight","pos":"n.","thai":"การมองเห็น"},
+      {"word":"sign","pos":"n./v.","thai":"สัญญาณ / ลงชื่อ"},
+      {"word":"signal","pos":"n./v.","thai":"สัญญาณ / ส่งสัญญาณ"},
+      {"word":"significant","pos":"adj.","thai":"สำคัญ"},
+      {"word":"silence","pos":"n.","thai":"ความเงียบ"},
+      {"word":"silent","pos":"adj.","thai":"เงียบ"},
+      {"word":"silver","pos":"n./adj.","thai":"เงิน / สีเงิน"},
+      {"word":"similar","pos":"adj.","thai":"คล้ายกัน"},
+      {"word":"simple","pos":"adj.","thai":"ง่าย"},
+      {"word":"since","pos":"conj./prep.","thai":"ตั้งแต่ / เพราะว่า"},
+      {"word":"sing","pos":"v.","thai":"ร้องเพลง"},
+      {"word":"singer","pos":"n.","thai":"นักร้อง"},
+      {"word":"single","pos":"adj.","thai":"คนโสด / เดี่ยว"},
+      {"word":"sink","pos":"v.","thai":"จม"},
+      {"word":"sister","pos":"n.","thai":"พี่สาว / น้องสาว"},
+      {"word":"sit","pos":"v.","thai":"นั่ง"},
+      {"word":"site","pos":"n.","thai":"สถานที่ / เว็บไซต์"},
+      {"word":"situation","pos":"n.","thai":"สถานการณ์"},
+      {"word":"size","pos":"n.","thai":"ขนาด"},
+      {"word":"skill","pos":"n.","thai":"ทักษะ"},
+      {"word":"skin","pos":"n.","thai":"ผิวหนัง"},
+      {"word":"sky","pos":"n.","thai":"ท้องฟ้า"},
+      {"word":"table","pos":"n.","thai":"โต๊ะ / ตาราง"},
+      {"word":"tablet","pos":"n.","thai":"แท็บเล็ต / ยาเม็ด"},
+      {"word":"tackle","pos":"v.","thai":"แก้ปัญหา / เข้าประชิดตัว"},
+      {"word":"tail","pos":"n.","thai":"หาง"},
+      {"word":"take","pos":"v.","thai":"เอา / รับ"},
+      {"word":"talent","pos":"n.","thai":"ความสามารถพิเศษ"},
+      {"word":"talk","pos":"v./n.","thai":"พูด / การพูด"},
+      {"word":"tall","pos":"adj.","thai":"สูง"},
+      {"word":"tank","pos":"n.","thai":"ถัง / รถถัง"},
+      {"word":"tap","pos":"v./n.","thai":"แตะ / ก๊อกน้ำ"},
+      {"word":"target","pos":"n./v.","thai":"เป้าหมาย / มุ่งเป้า"},
+      {"word":"task","pos":"n.","thai":"งาน"},
+      {"word":"taste","pos":"n./v.","thai":"รสชาติ / ชิม"},
+      {"word":"tax","pos":"n.","thai":"ภาษี"},
+      {"word":"taxi","pos":"n.","thai":"แท็กซี่"},
+      {"word":"tea","pos":"n.","thai":"ชา"},
+      {"word":"teach","pos":"v.","thai":"สอน"},
+      {"word":"teacher","pos":"n.","thai":"ครู"},
+      {"word":"team","pos":"n.","thai":"ทีม"},
+      {"word":"tear","pos":"v./n.","thai":"ฉีก / น้ำตา"},
+      {"word":"technology","pos":"n.","thai":"เทคโนโลยี"},
+      {"word":"teenager","pos":"n.","thai":"วัยรุ่น"},
+      {"word":"telephone","pos":"n.","thai":"โทรศัพท์"},
+      {"word":"television","pos":"n.","thai":"โทรทัศน์"},
+      {"word":"tell","pos":"v.","thai":"บอก"},
+      {"word":"temperature","pos":"n.","thai":"อุณหภูมิ"},
+      {"word":"temple","pos":"n.","thai":"วัด / วิหาร"},
+      {"word":"temporary","pos":"adj.","thai":"ชั่วคราว"},
+      {"word":"tend","pos":"v.","thai":"มีแนวโน้ม"},
+      {"word":"tennis","pos":"n.","thai":"เทนนิส"},
+      {"word":"tension","pos":"n.","thai":"ความตึงเครียด"},
+      {"word":"tent","pos":"n.","thai":"เต็นท์"},
+      {"word":"term","pos":"n.","thai":"ภาคเรียน / เงื่อนไข"},
+      {"word":"terrible","pos":"adj.","thai":"แย่มาก"},
+      {"word":"terrific","pos":"adj.","thai":"เยี่ยมมาก"},
+      {"word":"territory","pos":"n.","thai":"อาณาเขต"},
+      {"word":"test","pos":"n./v.","thai":"การทดสอบ / ทดสอบ"},
+      {"word":"text","pos":"n.","thai":"ข้อความ"},
+      {"word":"textbook","pos":"n.","thai":"ตำราเรียน"},
+      {"word":"than","pos":"conj.","thai":"กว่า"},
+      {"word":"thank","pos":"v.","thai":"ขอบคุณ"},
+      {"word":"thanks","pos":"n.","thai":"คำขอบคุณ"},
+      {"word":"that","pos":"conj./pron.","thai":"ที่ / สิ่งนั้น"},
+      {"word":"the","pos":"article","thai":"คำนำหน้านาม (เฉพาะเจาะจง)"},
+      {"word":"theater","pos":"n.","thai":"โรงละคร"},
+      {"word":"their","pos":"det.","thai":"ของพวกเขา"},
+      {"word":"theirs","pos":"pron.","thai":"ของพวกเขา (รูปแทน)"},
+      {"word":"them","pos":"pron.","thai":"พวกเขา"},
+      {"word":"theme","pos":"n.","thai":"หัวข้อหลัก"},
+      {"word":"themselves","pos":"pron.","thai":"ตัวพวกเขาเอง"},
+      {"word":"then","pos":"adv.","thai":"จากนั้น"},
+      {"word":"theory","pos":"n.","thai":"ทฤษฎี"},
+      {"word":"there","pos":"adv.","thai":"ที่นั่น"},
+      {"word":"therefore","pos":"adv.","thai":"ดังนั้น"},
+      {"word":"these","pos":"pron./det.","thai":"เหล่านี้"},
+      {"word":"they","pos":"pron.","thai":"พวกเขา"},
+      {"word":"thick","pos":"adj.","thai":"หนา"},
+      {"word":"thief","pos":"n.","thai":"ขโมย"},
+      {"word":"thin","pos":"adj.","thai":"บาง / ผอม"},
+      {"word":"thing","pos":"n.","thai":"สิ่งของ"},
+      {"word":"think","pos":"v.","thai":"คิด"},
+      {"word":"third","pos":"adj./n.","thai":"ที่สาม"},
+      {"word":"thirsty","pos":"adj.","thai":"กระหายน้ำ"},
+      {"word":"this","pos":"pron./det.","thai":"นี้ / สิ่งนี้"},
+      {"word":"those","pos":"pron./det.","thai":"เหล่านั้น"},
+      {"word":"though","pos":"conj.","thai":"ถึงแม้ว่า"},
+      {"word":"thought","pos":"n.","thai":"ความคิด"},
+      {"word":"thousand","pos":"n./adj.","thai":"พัน"},
+      {"word":"threat","pos":"n.","thai":"การคุกคาม"},
+      {"word":"threaten","pos":"v.","thai":"ข่มขู่"},
+      {"word":"three","pos":"num.","thai":"สาม"},
+      {"word":"throat","pos":"n.","thai":"ลำคอ"},
+      {"word":"through","pos":"prep.","thai":"ผ่าน"},
+      {"word":"throw","pos":"v.","thai":"ขว้าง"},
+      {"word":"thumb","pos":"n.","thai":"นิ้วหัวแม่มือ"},
+      {"word":"thus","pos":"adv.","thai":"ดังนั้น"},
+      {"word":"ticket","pos":"n.","thai":"ตั๋ว"},
+      {"word":"tie","pos":"v./n.","thai":"ผูก / เนกไท"},
+      {"word":"tiger","pos":"n.","thai":"เสือ"},
+      {"word":"tight","pos":"adj.","thai":"แน่น"},
+      {"word":"till","pos":"prep./conj.","thai":"จนกระทั่ง"},
+      {"word":"time","pos":"n.","thai":"เวลา"},
+      {"word":"tiny","pos":"adj.","thai":"เล็กมาก"},
+      {"word":"tip","pos":"n.","thai":"ปลาย / ทิป"},
+      {"word":"tire","pos":"v.","thai":"เหนื่อย"},
+      {"word":"tired","pos":"adj.","thai":"เหน็ดเหนื่อย"},
+      {"word":"title","pos":"n.","thai":"ชื่อเรื่อง"},
+      {"word":"to","pos":"prep.","thai":"ไปยัง"},
+      {"word":"toast","pos":"n./v.","thai":"ขนมปังปิ้ง / ดื่มอวยพร"},
+      {"word":"today","pos":"adv./n.","thai":"วันนี้"},
+      {"word":"toe","pos":"n.","thai":"นิ้วเท้า"},
+      {"word":"together","pos":"adv.","thai":"ด้วยกัน"},
+      {"word":"toilet","pos":"n.","thai":"ห้องน้ำ"},
+      {"word":"tomato","pos":"n.","thai":"มะเขือเทศ"},
+      {"word":"tomorrow","pos":"n./adv.","thai":"พรุ่งนี้"},
+      {"word":"tone","pos":"n.","thai":"น้ำเสียง / เสียง"},
+      {"word":"tongue","pos":"n.","thai":"ลิ้น / ภาษา"},
+      {"word":"too","pos":"adv.","thai":"ด้วย / มากเกินไป"},
+      {"word":"tool","pos":"n.","thai":"เครื่องมือ"},
+      {"word":"top","pos":"n./adj.","thai":"ด้านบน / ชั้นนำ"},
+      {"word":"unable","pos":"adj.","thai":"ไม่สามารถ"},
+      {"word":"uncle","pos":"n.","thai":"ลุง / อา / น้า"},
+      {"word":"under","pos":"prep.","thai":"ใต้ / ภายใต้"},
+      {"word":"undergo","pos":"v.","thai":"ประสบ / เผชิญ"},
+      {"word":"understand","pos":"v.","thai":"เข้าใจ"},
+      {"word":"understanding","pos":"n.","thai":"ความเข้าใจ"},
+      {"word":"undertake","pos":"v.","thai":"รับผิดชอบ / ดำเนินการ"},
+      {"word":"uniform","pos":"n.","thai":"เครื่องแบบ"},
+      {"word":"union","pos":"n.","thai":"สหภาพ / การรวมกัน"},
+      {"word":"unique","pos":"adj.","thai":"ไม่เหมือนใคร"},
+      {"word":"unit","pos":"n.","thai":"หน่วย"},
+      {"word":"unite","pos":"v.","thai":"รวมกัน"},
+      {"word":"united","pos":"adj.","thai":"รวมเป็นหนึ่ง"},
+      {"word":"universe","pos":"n.","thai":"จักรวาล"},
+      {"word":"university","pos":"n.","thai":"มหาวิทยาลัย"},
+      {"word":"unknown","pos":"adj.","thai":"ไม่รู้จัก"},
+      {"word":"unless","pos":"conj.","thai":"เว้นแต่"},
+      {"word":"unlike","pos":"prep./adj.","thai":"แตกต่างจาก / ไม่เหมือน"},
+      {"word":"unlikely","pos":"adj.","thai":"ไม่น่าจะ"},
+      {"word":"until","pos":"conj./prep.","thai":"จนกระทั่ง"},
+      {"word":"unusual","pos":"adj.","thai":"ผิดปกติ"},
+      {"word":"up","pos":"adv./prep.","thai":"ขึ้น"},
+      {"word":"update","pos":"v./n.","thai":"อัปเดต / การปรับปรุง"},
+      {"word":"upgrade","pos":"v./n.","thai":"ยกระดับ / การปรับปรุง"},
+      {"word":"upon","pos":"prep.","thai":"บน / เมื่อ"},
+      {"word":"upper","pos":"adj.","thai":"บน / สูงกว่า"},
+      {"word":"upset","pos":"adj./v.","thai":"อารมณ์เสีย / ทำให้ไม่สบายใจ"},
+      {"word":"urban","pos":"adj.","thai":"ในเมือง"},
+      {"word":"urge","pos":"v./n.","thai":"กระตุ้น / แรงผลักดัน"},
+      {"word":"urgent","pos":"adj.","thai":"เร่งด่วน"},
+      {"word":"use","pos":"v./n.","thai":"ใช้ / การใช้"},
+      {"word":"used","pos":"adj.","thai":"ที่เคย / ที่ใช้แล้ว"},
+      {"word":"useful","pos":"adj.","thai":"มีประโยชน์"},
+      {"word":"useless","pos":"adj.","thai":"ไร้ประโยชน์"},
+      {"word":"user","pos":"n.","thai":"ผู้ใช้"},
+      {"word":"usual","pos":"adj.","thai":"ตามปกติ"},
+      {"word":"usually","pos":"adv.","thai":"โดยปกติ"},
+      {"word":"utility","pos":"n.","thai":"สาธารณูปโภค / ประโยชน์ใช้สอย"},
+      {"word":"utilize","pos":"v.","thai":"ใช้ให้เกิดประโยชน์"},
+      {"word":"utter","pos":"v./adj.","thai":"เปล่งเสียง / สิ้นเชิง"},
+      {"word":"ultimate","pos":"adj.","thai":"ที่สุด / สูงสุด"},
+      {"word":"ultra","pos":"prefix","thai":"เกิน / เหนือ"},
+      {"word":"umbrella","pos":"n.","thai":"ร่ม"},
+      {"word":"unacceptable","pos":"adj.","thai":"ไม่อาจยอมรับได้"},
+      {"word":"unavailable","pos":"adj.","thai":"ไม่ว่าง / ไม่มีให้ใช้"},
+      {"word":"unbelievable","pos":"adj.","thai":"ไม่น่าเชื่อ"},
+      {"word":"uncomfortable","pos":"adj.","thai":"ไม่สะดวกสบาย"},
+      {"word":"uncommon","pos":"adj.","thai":"ไม่ธรรมดา"},
+      {"word":"uncover","pos":"v.","thai":"เปิดเผย"},
+      {"word":"underground","pos":"adj./n.","thai":"ใต้ดิน / รถไฟใต้ดิน"},
+      {"word":"undoubtedly","pos":"adv.","thai":"อย่างไม่ต้องสงสัย"},
+      {"word":"unemployed","pos":"adj.","thai":"ว่างงาน"},
+      {"word":"unemployment","pos":"n.","thai":"การว่างงาน"},
+      {"word":"unexpected","pos":"adj.","thai":"ไม่คาดคิด"},
+      {"word":"unfair","pos":"adj.","thai":"ไม่ยุติธรรม"},
+      {"word":"unfamiliar","pos":"adj.","thai":"ไม่คุ้นเคย"},
+      {"word":"unfit","pos":"adj.","thai":"ไม่เหมาะสม / ไม่ฟิต"},
+      {"word":"unfold","pos":"v.","thai":"คลี่ออก / เปิดเผย"},
+      {"word":"unfortunate","pos":"adj.","thai":"โชคร้าย"},
+      {"word":"unfriendly","pos":"adj.","thai":"ไม่เป็นมิตร"},
+      {"word":"unhappy","pos":"adj.","thai":"ไม่มีความสุข"},
+      {"word":"unhealthy","pos":"adj.","thai":"ไม่ดีต่อสุขภาพ"},
+      {"word":"unimportant","pos":"adj.","thai":"ไม่สำคัญ"},
+      {"word":"uninteresting","pos":"adj.","thai":"ไม่น่าสนใจ"},
+      {"word":"uninvited","pos":"adj.","thai":"ที่ไม่ได้รับเชิญ"},
+      {"word":"unjust","pos":"adj.","thai":"ไม่ยุติธรรม"},
+      {"word":"unlawful","pos":"adj.","thai":"ผิดกฎหมาย"},
+      {"word":"unlimited","pos":"adj.","thai":"ไม่จำกัด"},
+      {"word":"unload","pos":"v.","thai":"ขนของลง"},
+      {"word":"unlock","pos":"v.","thai":"ปลดล็อก"},
+      {"word":"unlucky","pos":"adj.","thai":"โชคร้าย"},
+      {"word":"unnecessary","pos":"adj.","thai":"ไม่จำเป็น"},
+      {"word":"unpack","pos":"v.","thai":"แกะหีบห่อ"},
+      {"word":"unpleasant","pos":"adj.","thai":"ไม่น่าพอใจ"},
+      {"word":"unpredictable","pos":"adj.","thai":"คาดเดาไม่ได้"},
+      {"word":"unprepared","pos":"adj.","thai":"ไม่พร้อม"},
+      {"word":"unreachable","pos":"adj.","thai":"ติดต่อไม่ได้ / ไปไม่ถึง"},
+      {"word":"unreal","pos":"adj.","thai":"ไม่จริง"},
+      {"word":"unreliable","pos":"adj.","thai":"ไม่น่าเชื่อถือ"},
+      {"word":"unseen","pos":"adj.","thai":"มองไม่เห็น"},
+      {"word":"unsuccessful","pos":"adj.","thai":"ไม่ประสบความสำเร็จ"},
+      {"word":"untidy","pos":"adj.","thai":"ไม่เรียบร้อย"},
+      {"word":"unwanted","pos":"adj.","thai":"ไม่ต้องการ"},
+      {"word":"unwilling","pos":"adj.","thai":"ไม่เต็มใจ"},
+      {"word":"unwise","pos":"adj.","thai":"ไม่ฉลาด"},
+      {"word":"unworthy","pos":"adj.","thai":"ไม่คู่ควร"},
+      {"word":"upbeat","pos":"adj.","thai":" ร่าเริง"},
+      {"word":"uplift","pos":"v.","thai":"ยกขึ้น / ส่งเสริม"},
+      {"word":"upload","pos":"v.","thai":"อัปโหลด"},
+      {"word":"upright","pos":"adj.","thai":"ตั้งตรง / ซื่อสัตย์"},
+      {"word":"upside","pos":"n.","thai":"ด้านดี"},
+      {"word":"vacation","pos":"n.","thai":"วันหยุด / การพักผ่อน"},
+      {"word":"vaccinate","pos":"v.","thai":"ฉีดวัคซีน"},
+      {"word":"vaccination","pos":"n.","thai":"การฉีดวัคซีน"},
+      {"word":"vaccine","pos":"n.","thai":"วัคซีน"},
+      {"word":"vacuum","pos":"n./v.","thai":"สูญญากาศ / ดูดฝุ่น"},
+      {"word":"vague","pos":"adj.","thai":"คลุมเครือ"},
+      {"word":"valid","pos":"adj.","thai":"ใช้ได้ / ถูกต้องตามกฎหมาย"},
+      {"word":"valley","pos":"n.","thai":"หุบเขา"},
+      {"word":"valuable","pos":"adj.","thai":"มีค่า"},
+      {"word":"value","pos":"n./v.","thai":"คุณค่า / ให้คุณค่า"},
+      {"word":"van","pos":"n.","thai":"รถตู้"},
+      {"word":"vanish","pos":"v.","thai":"หายไป"},
+      {"word":"variety","pos":"n.","thai":"ความหลากหลาย"},
+      {"word":"various","pos":"adj.","thai":"หลากหลาย"},
+      {"word":"vary","pos":"v.","thai":"เปลี่ยนแปลง / แตกต่าง"},
+      {"word":"vast","pos":"adj.","thai":"กว้างใหญ่"},
+      {"word":"vegetable","pos":"n.","thai":"ผัก"},
+      {"word":"vehicle","pos":"n.","thai":"ยานพาหนะ"},
+      {"word":"venture","pos":"n./v.","thai":"การเสี่ยง / เสี่ยงทำ"},
+      {"word":"verbal","pos":"adj.","thai":"ทางคำพูด"},
+      {"word":"verdict","pos":"n.","thai":"คำตัดสิน"},
+      {"word":"version","pos":"n.","thai":"เวอร์ชัน"},
+      {"word":"vertical","pos":"adj.","thai":"แนวตั้ง"},
+      {"word":"very","pos":"adv./adj.","thai":"มาก / มากที่สุด"},
+      {"word":"vessel","pos":"n.","thai":"เรือ / ภาชนะ / หลอดเลือด"},
+      {"word":"veteran","pos":"n.","thai":"ทหารผ่านศึก / ผู้มีประสบการณ์"},
+      {"word":"via","pos":"prep.","thai":"ผ่านทาง"},
+      {"word":"vibrate","pos":"v.","thai":"สั่น"},
+      {"word":"vibration","pos":"n.","thai":"การสั่น"},
+      {"word":"vibrant","pos":"adj.","thai":"สดใส / มีชีวิตชีวา"},
+      {"word":"vice","pos":"n.","thai":"ความชั่วร้าย / รองฯ"},
+      {"word":"victim","pos":"n.","thai":"เหยื่อ"},
+      {"word":"victory","pos":"n.","thai":"ชัยชนะ"},
+      {"word":"video","pos":"n.","thai":"วิดีโอ"},
+      {"word":"view","pos":"n./v.","thai":"ทัศนียภาพ / มอง / มุมมอง"},
+      {"word":"viewer","pos":"n.","thai":"ผู้ชม"},
+      {"word":"village","pos":"n.","thai":"หมู่บ้าน"},
+      {"word":"villager","pos":"n.","thai":"ชาวบ้าน"},
+      {"word":"violate","pos":"v.","thai":"ละเมิด"},
+      {"word":"violation","pos":"n.","thai":"การละเมิด"},
+      {"word":"violence","pos":"n.","thai":"ความรุนแรง"},
+      {"word":"violent","pos":"adj.","thai":"รุนแรง"},
+      {"word":"virtual","pos":"adj.","thai":"เสมือน"},
+      {"word":"virtue","pos":"n.","thai":"คุณธรรม"},
+      {"word":"virus","pos":"n.","thai":"ไวรัส"},
+      {"word":"visible","pos":"adj.","thai":"มองเห็นได้"},
+      {"word":"vision","pos":"n.","thai":"วิสัยทัศน์ / การมองเห็น"},
+      {"word":"visit","pos":"v./n.","thai":"เยี่ยม / การเยี่ยม"},
+      {"word":"visitor","pos":"n.","thai":"ผู้เยี่ยมชม"},
+      {"word":"visual","pos":"adj.","thai":"เกี่ยวกับการมองเห็น"},
+      {"word":"vital","pos":"adj.","thai":"สำคัญมาก / มีชีวิตชีวา"},
+      {"word":"vivid","pos":"adj.","thai":"ชัดเจน / สดใส"},
+      {"word":"vocabulary","pos":"n.","thai":"คำศัพท์"},
+      {"word":"vocal","pos":"adj.","thai":"เกี่ยวกับเสียง / ชัดเจนในการพูด"},
+      {"word":"voice","pos":"n./v.","thai":"เสียงพูด / เปล่งเสียง"},
+      {"word":"volcano","pos":"n.","thai":"ภูเขาไฟ"},
+      {"word":"volleyball","pos":"n.","thai":"วอลเลย์บอล"},
+      {"word":"volume","pos":"n.","thai":"ปริมาตร / ระดับเสียง / เล่ม"},
+      {"word":"volunteer","pos":"n./v.","thai":"อาสาสมัคร / อาสา"},
+      {"word":"vote","pos":"v./n.","thai":"ลงคะแนน / การลงคะแนน"},
+      {"word":"voter","pos":"n.","thai":"ผู้มีสิทธิเลือกตั้ง"},
+      {"word":"voyage","pos":"n.","thai":"การเดินทางทางทะเลหรืออวกาศ"},
+      {"word":"vow","pos":"n./v.","thai":"คำสาบาน / สาบาน"},
+      {"word":"vulnerable","pos":"adj.","thai":"อ่อนแอ / ถูกทำร้ายได้ง่าย"},
+      {"word":"veterinary","pos":"adj.","thai":"เกี่ยวกับสัตวแพทย์"},
+      {"word":"validate","pos":"v.","thai":"ตรวจสอบความถูกต้อง"},
+      {"word":"valuation","pos":"n.","thai":"การประเมินค่า"},
+      {"word":"venom","pos":"n.","thai":"พิษ (จากสัตว์ เช่น งู)"},
+      {"word":"velocity","pos":"n.","thai":"ความเร็ว"},
+      {"word":"venerate","pos":"v.","thai":"เคารพนับถือ"},
+      {"word":"vendor","pos":"n.","thai":"ผู้ขาย"},
+      {"word":"verge","pos":"n.","thai":"ขอบ / ริม"},
+      {"word":"verify","pos":"v.","thai":"ยืนยันความถูกต้อง"},
+      {"word":"versatile","pos":"adj.","thai":"อเนกประสงค์ / ปรับตัวได้ดี"},
+      {"word":"verse","pos":"n.","thai":"บทกลอน / โคลงกลอน"},
+      {"word":"vest","pos":"n.","thai":"เสื้อกั๊ก"},
+      {"word":"vex","pos":"v.","thai":"ทำให้รำคาญ"},
+      {"word":"vine","pos":"n.","thai":"เถาวัลย์"},
+      {"word":"vintage","pos":"adj./n.","thai":"เก่าแบบคลาสสิก / รุ่นปีผลิต"},
+      {"word":"vindicate","pos":"v.","thai":"พิสูจน์ว่าถูก"},
+      {"word":"viable","pos":"adj.","thai":"ที่ใช้การได้ / ดำรงอยู่ได้"},
+      {"word":"vice versa","pos":"adv.","thai":"ตรงกันข้ามก็เป็นจริง"},
+      {"word":"vigilant","pos":"adj.","thai":"ระมัดระวัง"},
+      {"word":"vignette","pos":"n.","thai":"เรื่องสั้น / ภาพขนาดเล็ก"},
+      {"word":"vigor","pos":"n.","thai":"พลัง / ความแข็งแรง"},
+      {"word":"vigorous","pos":"adj.","thai":"แข็งแรง / มีพลัง"},
+      {"word":"villa","pos":"n.","thai":"บ้านพักตากอากาศ"},
+      {"word":"vindictive","pos":"adj.","thai":"พยาบาท"},
+      {"word":"violin","pos":"n.","thai":"ไวโอลิน"},
+      {"word":"virtually","pos":"adv.","thai":"เสมือน / เกือบทั้งหมด"},
+      {"word":"visa","pos":"n.","thai":"วีซ่า"},
+      {"word":"visibly","pos":"adv.","thai":"อย่างเห็นได้ชัด"},
+      {"word":"vitality","pos":"n.","thai":"ความมีชีวิตชีวา"},
+      {"word":"vocalist","pos":"n.","thai":"นักร้อง"},
+      {"word":"volatility","pos":"n.","thai":"ความผันผวน"},
+      {"word":"volcanic","pos":"adj.","thai":"เกี่ยวกับภูเขาไฟ"},
+      {"word":"vortex","pos":"n.","thai":"กระแสน้ำวน / พายุหมุน"},
+      {"word":"wage","pos":"n.","thai":"ค่าจ้าง"},
+      {"word":"wait","pos":"v.","thai":"รอ"},
+      {"word":"wake","pos":"v./n.","thai":"ตื่น / ร่องรอย"},
+      {"word":"walk","pos":"v./n.","thai":"เดิน"},
+      {"word":"wall","pos":"n.","thai":"กำแพง"},
+      {"word":"wander","pos":"v.","thai":"เดินเตร่อย่างไร้จุดหมาย"},
+      {"word":"want","pos":"v./n.","thai":"ต้องการ / ความต้องการ"},
+      {"word":"war","pos":"n.","thai":"สงคราม"},
+      {"word":"ward","pos":"n.","thai":"เขต, เขตปกครอง"},
+      {"word":"warehouse","pos":"n.","thai":"คลังสินค้า"},
+      {"word":"warm","pos":"adj./v.","thai":"อุ่น / ทำให้อุ่น"},
+      {"word":"warn","pos":"v.","thai":"เตือน"},
+      {"word":"warranty","pos":"n.","thai":"การรับประกัน"},
+      {"word":"wash","pos":"v./n.","thai":"ล้าง"},
+      {"word":"waste","pos":"n./v.","thai":"ของเสีย / ทำให้เสียเปล่า"},
+      {"word":"watch","pos":"v./n.","thai":"เฝ้ามอง / นาฬิกา"},
+      {"word":"water","pos":"n./v.","thai":"น้ำ / รดน้ำ"},
+      {"word":"wave","pos":"n./v.","thai":"คลื่น / โบกมือ"},
+      {"word":"way","pos":"n.","thai":"ทาง / วิธี"},
+      {"word":"weak","pos":"adj.","thai":"อ่อนแอ"},
+      {"word":"wealth","pos":"n.","thai":"ความมั่งคั่ง"},
+      {"word":"weapon","pos":"n.","thai":"อาวุธ"},
+      {"word":"wear","pos":"v.","thai":"สวมใส่"},
+      {"word":"weather","pos":"n.","thai":"สภาพอากาศ"},
+      {"word":"wedding","pos":"n.","thai":"งานแต่งงาน"},
+      {"word":"week","pos":"n.","thai":"สัปดาห์"},
+      {"word":"weekday","pos":"n.","thai":"วันธรรมดา (ไม่ใช่วันหยุด)"},
+      {"word":"weekend","pos":"n.","thai":"วันหยุดสุดสัปดาห์"},
+      {"word":"weigh","pos":"v.","thai":"ชั่งน้ำหนัก"},
+      {"word":"weight","pos":"n.","thai":"น้ำหนัก"},
+      {"word":"welcome","pos":"v./adj./n.","thai":"ต้อนรับ / น่ายินดี / การต้อนรับ"},
+      {"word":"well","pos":"adv./adj.","thai":"ดี / อย่างดี"},
+      {"word":"west","pos":"n./adj./adv.","thai":"ทิศตะวันตก"},
+      {"word":"wet","pos":"adj./v.","thai":"เปียก"},
+      {"word":"what","pos":"pron./det.","thai":"อะไร"},
+      {"word":"wheel","pos":"n.","thai":"ล้อ"},
+      {"word":"when","pos":"adv./conj.","thai":"เมื่อไหร่ / เมื่อ"},
+      {"word":"where","pos":"adv./conj.","thai":"ที่ไหน"},
+      {"word":"whether","pos":"conj.","thai":"ว่าหรือไม่"},
+      {"word":"which","pos":"pron./det.","thai":"ไหน / อันไหน"},
+      {"word":"while","pos":"conj./n.","thai":"ขณะที่ / ช่วงเวลา"},
+      {"word":"whisper","pos":"v./n.","thai":"กระซิบ"},
+      {"word":"white","pos":"adj./n.","thai":"สีขาว"},
+      {"word":"who","pos":"pron.","thai":"ใคร"},
+      {"word":"whole","pos":"adj./n.","thai":"ทั้งหมด"},
+      {"word":"why","pos":"adv.","thai":"ทำไม"},
+      {"word":"wide","pos":"adj.","thai":"กว้าง"},
+      {"word":"widely","pos":"adv.","thai":"อย่างกว้างขวาง"},
+      {"word":"wife","pos":"n.","thai":"ภรรยา"},
+      {"word":"wild","pos":"adj.","thai":"ป่า / ดุร้าย"},
+      {"word":"will","pos":"n./v.","thai":"ความตั้งใจ / จะ"},
+      {"word":"win","pos":"v./n.","thai":"ชนะ"},
+      {"word":"wind","pos":"n./v.","thai":"ลม / พัน"},
+      {"word":"window","pos":"n.","thai":"หน้าต่าง"},
+      {"word":"wine","pos":"n.","thai":"ไวน์"},
+      {"word":"wing","pos":"n.","thai":"ปีก"},
+      {"word":"winner","pos":"n.","thai":"ผู้ชนะ"},
+      {"word":"winter","pos":"n./adj.","thai":"ฤดูหนาว"},
+      {"word":"wipe","pos":"v.","thai":"เช็ด"},
+      {"word":"wire","pos":"n./v.","thai":"สายไฟ / ต่อสาย"},
+      {"word":"wise","pos":"adj.","thai":"ฉลาด"},
+      {"word":"wish","pos":"v./n.","thai":"ปรารถนา / ความปรารถนา"},
+      {"word":"wit","pos":"n.","thai":"ไหวพริบ"},
+      {"word":"with","pos":"prep.","thai":"กับ"},
+      {"word":"withdraw","pos":"v.","thai":"ถอน / ถอนตัว"},
+      {"word":"within","pos":"prep./adv.","thai":"ภายใน"},
+      {"word":"without","pos":"prep./adv.","thai":"โดยไม่มี"},
+      {"word":"witness","pos":"n./v.","thai":"พยาน / เป็นพยาน"},
+      {"word":"woman","pos":"n.","thai":"ผู้หญิง"},
+      {"word":"wonder","pos":"v./n.","thai":"สงสัย / ความประหลาดใจ"},
+      {"word":"wood","pos":"n.","thai":"ไม้ / ป่าไม้"},
+      {"word":"wooden","pos":"adj.","thai":"ทำจากไม้"},
+      {"word":"wool","pos":"n.","thai":"ขนสัตว์"},
+      {"word":"word","pos":"n.","thai":"คำ"},
+      {"word":"work","pos":"v./n.","thai":"ทำงาน / งาน"},
+      {"word":"worker","pos":"n.","thai":"คนงาน"},
+      {"word":"world","pos":"n.","thai":"โลก"},
+      {"word":"worry","pos":"v./n.","thai":"กังวล"},
+      {"word":"worse","pos":"adj./adv.","thai":"แย่กว่า"},
+      {"word":"worst","pos":"adj./adv.","thai":"แย่ที่สุด"},
+      {"word":"worth","pos":"adj./n.","thai":"มีค่า"},
+      {"word":"worthy","pos":"adj.","thai":"สมควรได้รับ"},
+      {"word":"would","pos":"modal v.","thai":"จะ (รูปอดีตของ will)"},
+      {"word":"wound","pos":"n./v.","thai":"บาดแผล / ทำให้บาดเจ็บ"},
+      {"word":"wrap","pos":"v./n.","thai":"ห่อ / การห่อ"},
+      {"word":"wreck","pos":"n./v.","thai":"ซาก / ทำลาย"},
+      {"word":"wrestle","pos":"v./n.","thai":"ต่อสู้ปล้ำ"},
+      {"word":"wrist","pos":"n.","thai":"ข้อมือ"},
+      {"word":"write","pos":"v.","thai":"เขียน"},
+      {"word":"writer","pos":"n.","thai":"นักเขียน"},
+      {"word":"writing","pos":"n.","thai":"การเขียน"},
+      {"word":"wrong","pos":"adj./adv./n.","thai":"ผิด / ผิดพลาด"},
+      {"word":"wrote","pos":"v.","thai":"เขียน (อดีตกาลของ write)"},
+      {"word":"wrath","pos":"n.","thai":"ความโกรธจัด"},
+      {"word":"wrinkle","pos":"n./v.","thai":"รอยย่น / ทำให้ย่น"},
+      {"word":"wristwatch","pos":"n.","thai":"นาฬิกาข้อมือ"},
+      {"word":"wry","pos":"adj.","thai":"บิดเบี้ยว / ล้อเล่นขำ ๆ"},
+      {"word":"wilderness","pos":"n.","thai":"ดินแดนป่า"},
+      {"word":"willpower","pos":"n.","thai":"พลังใจ"},
+      {"word":"willing","pos":"adj.","thai":"เต็มใจ"},
+      {"word":"x-ray","pos":"n./v.","thai":"รังสีเอกซ์ / เอ็กซเรย์"},
+      {"word":"xenophobia","pos":"n.","thai":"ความกลัวหรือเกลียดชาวต่างชาติ"},
+      {"word":"xerophyte","pos":"n.","thai":"พืชที่ทนแล้ง"},
+      {"word":"xylem","pos":"n.","thai":"เนื้อไม้ (ส่วนของพืชที่ลำเลียงน้ำ)"},
+      {"word":"xanthoma","pos":"n.","thai":"แผลผิวหนังสีเหลือง"},
+      {"word":"xerosis","pos":"n.","thai":"สภาพผิวแห้ง"},
+      {"word":"xenon flash","pos":"n.","thai":"แฟลชกล้องแบบใช้ก๊าซซีนอน"},
+      {"word":"xeriscaping","pos":"n.","thai":"การจัดสวนใช้น้ำน้อย"},
+      {"word":"xenophile","pos":"n.","thai":"คนที่ชอบชาวต่างชาติ"},
+      {"word":"xerarch","pos":"adj.","thai":"เกี่ยวกับระบบนิเวศในที่แห้ง"},
+      {"word":"xiphoid cartilage","pos":"n.","thai":"กระดูกอ่อนปลายกระดูกหน้าอก"},
+      {"word":"xerothermic","pos":"adj.","thai":"แห้งและร้อน"},
+      {"word":"xerophyte adaptations","pos":"n.","thai":"การปรับตัวของพืชในที่แห้ง"},
+      {"word":"xylocaine","pos":"n.","thai":"ยาชาเฉพาะที่"},
+      {"word":"xenograft","pos":"n.","thai":"การปลูกถ่ายอวัยวะจากสัตว์ต่างชนิด"},
+      {"word":"xenolith","pos":"n.","thai":"หินต่างประเทศในหินภูเขาไฟ"},
+      {"word":"xeric environment","pos":"n.","thai":"สภาพแวดล้อมแห้ง"},
+      {"word":"xanthene","pos":"n.","thai":"สารประกอบสีเหลือง"},
+      {"word":"xenobiology","pos":"n.","thai":"ชีววิทยาของสิ่งมีชีวิตต่างดาว"},
+      {"word":"xenogamy","pos":"n.","thai":"การผสมเกสรข้ามสายพันธุ์"},
+      {"word":"xylitol","pos":"n.","thai":"น้ำตาลแอลกอฮอล์ชนิดหนึ่ง"},
+      {"word":"xenoliths","pos":"n.","thai":"หินต่างประเทศหลายก้อน"},
+      {"word":"xerosis cutis","pos":"n.","thai":"ภาวะผิวหนังแห้ง"},
+      {"word":"xerophthalmia","pos":"n.","thai":"โรคตาแห้ง"},
+      {"word":"xenogenesis theory","pos":"n.","thai":"ทฤษฎีการเกิดสิ่งมีชีวิตต่างพันธุกรรม"},
+      {"word":"xenotransplantation","pos":"n.","thai":"การปลูกถ่ายอวัยวะข้ามสายพันธุ์"},
+      {"word":"xeric soils","pos":"n.","thai":"ดินแห้ง"},
+      {"word":"xenobiotics metabolism","pos":"n.","thai":"การเผาผลาญสารต่างชาติในร่างกาย"},
+      {"word":"xenon lamp","pos":"n.","thai":"หลอดไฟซีนอน"},
+      {"word":"xenogeny","pos":"n.","thai":"การเกิดสิ่งมีชีวิตต่างพันธุกรรม"},
+      {"word":"xylem tissue","pos":"n.","thai":"เนื้อเยื่อไม้ในพืช"},
+      {"word":"xerophytes","pos":"n.","thai":"พืชทนแล้ง"},
+      {"word":"xenophobia symptoms","pos":"n.","thai":"อาการกลัวชาวต่างชาติ"},
+      {"word":"xanthate","pos":"n.","thai":"สารเคมี"},
+      {"word":"xenolith formation","pos":"n.","thai":"การก่อตัวของหินต่างประเทศ"},
+      {"word":"xenobiotic compounds","pos":"n.","thai":"สารเคมีจากภายนอก"},
+      {"word":"xerophytic plants","pos":"n.","thai":"พืชทนแล้ง"},
+      {"word":"xylophagous insects","pos":"n.","thai":"แมลงกินไม้"},
+      {"word":"xerothermic climate","pos":"n.","thai":"สภาพภูมิอากาศร้อนและแห้ง"},
+      {"word":"xenon gas","pos":"n.","thai":"ก๊าซซีนอน"},
+      {"word":"xylotomy","pos":"n.","thai":"การตัดตัวอย่างไม้"},
+      {"word":"xenogenetic reproduction","pos":"n.","thai":"การสืบพันธุ์แบบต่างพันธุกรรม"},
+      {"word":"xenotransplant","pos":"n.","thai":"อวัยวะปลูกถ่ายจากสัตว์"},
+      {"word":"xylidine","pos":"n.","thai":"สารเคมี"},
+      {"word":"xeroderma pigmentosum","pos":"n.","thai":"โรคผิวหนังผิดปกติ"},
+      {"word":"xanthopsia","pos":"n.","thai":"การเห็นสีเหลืองผิดปกติ"},
+      {"word":"xenophile attitude","pos":"n.","thai":"ทัศนคติชื่นชอบชาวต่างชาติ"},
+      {"word":"xerophilous environment","pos":"n.","thai":"สภาพแวดล้อมที่แห้งมาก"},
+      {"word":"xylophone music","pos":"n.","thai":"เพลงจากเครื่องเคาะไม้"},
+      {"word":"xerarch succession","pos":"n.","thai":"การสืบสายพันธุ์ในที่แห้ง"},
+      {"word":"xenophobes behavior","pos":"n.","thai":"พฤติกรรมเกลียดชาวต่างชาติ"},
+      {"word":"xenogeny process","pos":"n.","thai":"กระบวนการเกิดสิ่งมีชีวิตต่างพันธุกรรม"},
+      {"word":"xerothermic zone","pos":"n.","thai":"โซนร้อนและแห้ง"},
+      {"word":"xylophone player","pos":"n.","thai":"นักเล่นเครื่องเคาะไม้"},
+      {"word":"xenograft rejection","pos":"n.","thai":"การปฏิเสธการปลูกถ่ายอวัยวะต่างสายพันธุ์"},
+      {"word":"xanthin","pos":"n.","thai":"สารเคมีในพืช"},
+      {"word":"yard","pos":"n.","thai":"ลาน, สนาม"},
+      {"word":"year","pos":"n.","thai":"ปี"},
+      {"word":"yearly","pos":"adj./adv.","thai":"ทุกปี, เป็นประจำทุกปี"},
+      {"word":"yell","pos":"v./n.","thai":"ตะโกน, การตะโกน"},
+      {"word":"yellow","pos":"adj./n.","thai":"สีเหลือง"},
+      {"word":"yes","pos":"adv./n.","thai":"ใช่"},
+      {"word":"yesterday","pos":"n./adv.","thai":"เมื่อวาน"},
+      {"word":"yet","pos":"adv./conj.","thai":"ยัง, แต่"},
+      {"word":"yield","pos":"v./n.","thai":"ผลผลิต, ให้ผล"},
+      {"word":"young","pos":"adj.","thai":"หนุ่ม, สาว, อ่อนวัย"},
+      {"word":"youth","pos":"n.","thai":"วัยรุ่น"},
+      {"word":"yawn","pos":"v./n.","thai":"หาว"},
+      {"word":"yummy","pos":"adj.","thai":"อร่อย"},
+      {"word":"yacht","pos":"n.","thai":"เรือยอชท์"},
+      {"word":"yolk","pos":"n.","thai":"ไข่แดง"},
+      {"word":"yodel","pos":"v.","thai":"ร้องเพลงแบบโยเดิล (ร้องสลับเสียงสูงต่ำ)"},
+      {"word":"yardstick","pos":"n.","thai":"ไม้บรรทัดหนึ่งหลา"},
+      {"word":"yearn","pos":"v.","thai":"ปรารถนาอย่างแรงกล้า"},
+      {"word":"yielding","pos":"adj.","thai":"ยอม, อ่อนน้อม"},
+      {"word":"youngster","pos":"n.","thai":"เด็กหนุ่ม, เด็กสาว"},
+      {"word":"yummylicious","pos":"adj.","thai":"อร่อยมาก (สแลง)"},
+      {"word":"yolk sac","pos":"n.","thai":"ถุงไข่แดง (ในตัวอ่อนสัตว์)"},
+      {"word":"yodeler","pos":"n.","thai":"นักร้องโยเดิล"},
+      {"word":"yawning","pos":"adj.","thai":"ที่กำลังหาว"},
+      {"word":"yearbook","pos":"n.","thai":"สมุดประจำปี"},
+      {"word":"youthful","pos":"adj.","thai":"วัยรุ่น, อ่อนเยาว์"},
+      {"word":"yowl","pos":"v./n.","thai":"ร้องโหยหวน (สัตว์)"},
+      {"word":"yellowish","pos":"adj.","thai":"สีเหลืองอ่อน"},
+      {"word":"yesterday's","pos":"adj.","thai":"ของเมื่อวาน"},
+      {"word":"yeast","pos":"n.","thai":"ยีสต์"},
+      {"word":"yammer","pos":"v.","thai":"พูดมาก, พูดเสียงดัง"},
+      {"word":"yippee","pos":"interj.","thai":"ว้าว!"},
+      {"word":"yip","pos":"v./n.","thai":"เห่าเสียงแหลม (สุนัข)"},
+      {"word":"yank","pos":"v.","thai":"ดึงอย่างแรง"},
+      {"word":"yardage","pos":"n.","thai":"จำนวนหลา (หน่วยวัดความยาว)"},
+      {"word":"yearlong","pos":"adj.","thai":"ตลอดปี"},
+      {"word":"yodeling","pos":"n.","thai":"การร้องโยเดิล"},
+      {"word":"yaw","pos":"v.","thai":"หมุนรอบแนวตั้ง (ในเรือหรือเครื่องบิน)"},
+      {"word":"yellowtail","pos":"n.","thai":"ปลาหางเหลือง"},
+      {"word":"yardman","pos":"n.","thai":"คนดูแลลานหรือสวน"},
+      {"word":"yours","pos":"pron.","thai":"ของคุณ"},
+      {"word":"yourself","pos":"pron.","thai":"ตัวคุณเอง"},
+      {"word":"yurt","pos":"n.","thai":"กระโจมแบบมองโกเลีย"},
+      {"word":"yolked","pos":"adj.","thai":"มีไข่แดง (ในไข่)"},
+      {"word":"yabby","pos":"n.","thai":"กุ้งน้ำจืดชนิดหนึ่ง (ในออสเตรเลีย)"},
+      {"word":"yo-yo","pos":"n.","thai":"โยโย่ (ของเล่น)"},
+      {"word":"yeti","pos":"n.","thai":"สิ่งมีชีวิตในตำนานบนเทือกเขาหิมาลัย"},
+      {"word":"yenta","pos":"n.","thai":"คนช่างนินทา"},
+      {"word":"yobbo","pos":"n.","thai":"คนป่าเถื่อน (สแลงอังกฤษ)"},
+      {"word":"yak","pos":"v.","thai":"พูดมาก"},
+      {"word":"zebra","pos":"n.","thai":"ม้าลาย"},
+      {"word":"zero","pos":"n./adj.","thai":"ศูนย์, เป็นศูนย์"},
+      {"word":"zone","pos":"n./v.","thai":"เขต, โซน / แบ่งเขต"},
+      {"word":"zip","pos":"v./n.","thai":"ซิป, ซิปดึงขึ้น"},
+      {"word":"zinc","pos":"n.","thai":"สังกะสี"},
+      {"word":"zipper","pos":"n.","thai":"ซิป"},
+      {"word":"zoo","pos":"n.","thai":"สวนสัตว์"},
+      {"word":"zoology","pos":"n.","thai":"วิชาชีววิทยาสัตว์"},
+      {"word":"zoom","pos":"v./n.","thai":"ซูม, การซูม"},
+      {"word":"zeal","pos":"n.","thai":"ความกระตือรือร้น"},
+      {"word":"zealous","pos":"adj.","thai":"กระตือรือร้น"},
+      {"word":"zigzag","pos":"n./v./adj.","thai":"ลายซิกแซก / เดินเป็นซิกแซก / เป็นซิกแซก"},
+      {"word":"zenith","pos":"n.","thai":"จุดสูงสุด"},
+      {"word":"zephyr","pos":"n.","thai":"ลมเย็นอ่อน"},
+      {"word":"zest","pos":"n.","thai":"ความสนุกสนาน, ความตื่นเต้น"},
+      {"word":"zodiac","pos":"n.","thai":"ราศี"},
+      {"word":"zombie","pos":"n.","thai":"ซอมบี้"},
+      {"word":"zone out","pos":"phr. v","thai":"หมดสมาธิ"},
+      {"word":"zoom in","pos":"phr. v","thai":"ซูมเข้า"},
+      {"word":"zoom out","pos":"phr. v","thai":"ซูมออก"},
+      {"word":"zany","pos":"adj.","thai":"ตลก, บ้าบอ"},
+      {"word":"zap","pos":"v.","thai":"ทำลาย, ยิงอย่างรวดเร็ว"},
+      {"word":"zen","pos":"n./adj.","thai":"แนวคิดทางพุทธศาสนา (เซน)"},
+      {"word":"zip code","pos":"n.","thai":"รหัสไปรษณีย์"},
+      {"word":"zigzagging","pos":"n./adj.","thai":"การเดินเป็นซิกแซก / เป็นซิกแซก"},
+      {"word":"zillion","pos":"n.","thai":"จำนวนมากมาย (ไม่เป็นทางการ)"},
+      {"word":"zing","pos":"n.","thai":"ความมีชีวิตชีวา"},
+      {"word":"zestful","pos":"adj.","thai":"เต็มไปด้วยความกระตือรือร้น"},
+      {"word":"zeppelin","pos":"n.","thai":"เครื่องบินฮับเบิล (บอลลูนขนาดใหญ่)"},
+      {"word":"zinc oxide","pos":"n.","thai":"สังกะสีออกไซด์"},
+      {"word":"zookeeper","pos":"n.","thai":"คนดูแลสวนสัตว์"},
+      {"word":"zodiacal","pos":"adj.","thai":"เกี่ยวกับราศี"},
+      {"word":"zooplankton","pos":"n.","thai":"แพลงก์ตอนสัตว์"},
+      {"word":"zoometry","pos":"n.","thai":"ศึกษาขนาดและรูปร่างของสัตว์"},
+      {"word":"zoogenic","pos":"adj.","thai":"เกิดจากสัตว์"},
+      {"word":"zoophobia","pos":"n.","thai":"ความกลัวสัตว์"},
+      {"word":"zoopathology","pos":"n.","thai":"โรคสัตว์"},
+      {"word":"zoophilous","pos":"adj.","thai":"รักสัตว์"},
+      {"word":"zooplanktonic","pos":"adj.","thai":"เกี่ยวกับแพลงก์ตอนสัตว์"},
+      {"word":"zootherapy","pos":"n.","thai":"การรักษาด้วยสัตว์"},
+      {"word":"zoonosis","pos":"n.","thai":"โรคที่แพร่จากสัตว์สู่คน"},
+      {"word":"zoophyte","pos":"n.","thai":"สิ่งมีชีวิตที่คล้ายสัตว์และพืช"},
+      {"word":"zoomorphic","pos":"adj.","thai":"มีลักษณะคล้ายสัตว์"},
+      {"word":"zootomy","pos":"n.","thai":"การผ่าศพสัตว์"},
+      {"word":"zygote","pos":"n.","thai":"ไซโกต (เซลล์เริ่มต้นของสิ่งมีชีวิต)"},
+      {"word":"zygomatic","pos":"adj.","thai":"เกี่ยวกับโหนกแก้ม"},
+      {"word":"zymology","pos":"n.","thai":"วิชาศึกษาการหมัก"},
+      {"word":"zymurgy","pos":"n.","thai":"การทำเบียร์และเหล้า"},
+      {"word":"zygote formation","pos":"n.","thai":"การก่อตัวของไซโกต"},
+      {"word":"zygospore","pos":"n.","thai":"สปอร์ที่เกิดจากการผสมพันธุ์ในบางสิ่งมีชีวิต"},
+      {"word":"zeolite","pos":"n.","thai":"แร่ธาตุชนิดหนึ่ง"},
+      {"word":"zebra crossing","pos":"n.","thai":"ทางม้าลาย"},
+      {"word":"zero gravity","pos":"n.","thai":"สภาพไร้น้ำหนัก"},
+      {"word":"zip line","pos":"n.","thai":"สายสลิงสำหรับไถล"},
+      {"word":"zodiac sign","pos":"n.","thai":"ราศีเกิด"},
+      {"word":"zoom lens","pos":"n.","thai":"เลนส์ซูม"},
+      {"word":"zone defense","pos":"n.","thai":"การตั้งรับแบบแบ่งเขต"},
+      {"word":"zoological","pos":"adj.","thai":"เกี่ยวกับสัตว์"},
+      {"word":"zoonotic disease","pos":"n.","thai":"โรคที่เกิดจากสัตว์"},
+      {"word":"zoomorphic design","pos":"n.","thai":"การออกแบบที่มีรูปสัตว์"},
+      {"word":"zygotic","pos":"adj.","thai":"เกี่ยวกับไซโกต"},
+      {"word":"zygomorphic flower","pos":"adj.","thai":"ดอกไม้ที่มีความสมมาตรสองด้าน"},
+      {"word":"zymogen","pos":"n.","thai":"เอนไซม์รูปแบบหนึ่ง"},
+      {"word":"zygotene","pos":"n.","thai":"ระยะหนึ่งของการแบ่งเซลล์"},
+      {"word":"zygotic embryo","pos":"n.","thai":"ตัวอ่อนไซโกต"},
+      {"word":"zygotic division","pos":"n.","thai":"การแบ่งเซลล์ไซโกต"},
+      {"word":"zinc toxicity","pos":"n.","thai":"การเป็นพิษจากสังกะสี"},
+      {"word":"zip file","pos":"n.","thai":"ไฟล์ซิป (ไฟล์บีบอัด)"},
+      {"word":"zero hour","pos":"n.","thai":"เวลาที่กำหนดเริ่ม"},
+      {"word":"zero tolerance","pos":"n.","thai":"นโยบายไม่ยอมรับข้อผิดพลาด"},
+      {"word":"zebra finch","pos":"n.","thai":"นกฟินช์ม้าลาย"},
+      {"word":"zinc finger","pos":"n.","thai":"โครงสร้างโปรตีน"},
+      {"word":"zinc oxide cream","pos":"n.","thai":"ครีมสังกะสีออกไซด์"},
+      {"word":"zoomorphic art","pos":"n.","thai":"ศิลปะรูปสัตว์"},
+      {"word":"zone out","pos":"phr. v","thai":"หมดสมาธิ"},
+      {"word":"zodiacal constellation","pos":"n.","thai":"กลุ่มดาวราศี"},
+      {"word":"zinc carbonate","pos":"n.","thai":"สังกะสีคาร์บอเนต"},
+      {"word":"zoom meeting","pos":"n.","thai":"การประชุมผ่านซูม"},
+      {"word":"zonal","pos":"adj.","thai":"แบ่งเป็นเขต"},
+      {"word":"zookeeper duties","pos":"n.","thai":"หน้าที่ของคนดูแลสวนสัตว์"},
+      {"word":"zygospore germination","pos":"n.","thai":"การงอกของสปอร์ผสมพันธุ์"},
+      {"word":"zymology techniques","pos":"n.","thai":"เทคนิคการหมัก"},
+      {"word":"zygotic stage","pos":"n.","thai":"ระยะไซโกต"},
+      {"word":"zygote development","pos":"n.","thai":"การพัฒนาไซโกต"},
+      {"word":"zygospore life cycle","pos":"n.","thai":"วงจรชีวิตของสปอร์ผสมพันธุ์"}
+    ];
+
+    // pad if needed (should already be ≥1000)
+    while (words.length < 1000) {
+      const idx = words.length + 1;
+      words.push({word:`word${idx}`, pos:"n.", thai:`คำแปลของ word${idx}`});
+    }
+
+    /************************************************************************
+     * Quiz logic: 3 choices, 30s per question
+     ************************************************************************/
+
+    const entries = words.map(w => [w.word, `${w.pos} — ${w.thai}`]);
+    const total = entries.length;
+    document.getElementById('total').textContent = total;
+
+    let order = entries.map((_, i) => i);
+    shuffle(order);
+
+    let current = 0;
+    let score = 0;
+    let wrongMap = JSON.parse(localStorage.getItem('tc_voc_wrong') || '{}') || {};
+    let timerSeconds = 30;
+    let timerId = null;
+    const TIMER_PER_QUESTION = 30; // seconds
+    const optionsCount = 3; // as requested
+
+    const questionEl = document.getElementById('question');
+    const optionsEl = document.getElementById('options');
+    const progressEl = document.getElementById('progress');
+    const scoreEl = document.getElementById('score');
+    const timerEl = document.getElementById('timer');
+    const nextBtn = document.getElementById('nextBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const reviewBtn = document.getElementById('reviewBtn');
+    const reviewDiv = document.getElementById('review');
+    const wrongListEl = document.getElementById('wrongList');
+    const wrongCountEl = document.getElementById('wrongCount');
+    const exportBtn = document.getElementById('exportBtn');
+    const clearWrongBtn = document.getElementById('clearWrong');
+    const closeReviewBtn = document.getElementById('closeReview');
+
+    function saveWrong() {
+      try { localStorage.setItem('tc_voc_wrong', JSON.stringify(wrongMap)); } catch(e){console.warn(e)}
+    }
+
+    function startTimer() {
+      clearInterval(timerId);
+      timerSeconds = TIMER_PER_QUESTION;
+      timerEl.textContent = timerSeconds;
+      timerId = setInterval(() => {
+        timerSeconds--;
+        timerEl.textContent = timerSeconds;
+        if (timerSeconds <= 0) {
+          clearInterval(timerId);
+          markTimeout();
+        }
+      }, 1000);
+    }
+
+    function markTimeout() {
+      const idx = order[current];
+      const [word, posThai] = entries[idx];
+      const sep = posThai.indexOf('—');
+      const pos = sep !== -1 ? posThai.slice(0, sep).trim() : '';
+      const thai = sep !== -1 ? posThai.slice(sep+1).trim() : posThai;
+      wrongMap[word] = wrongMap[word] ? {...wrongMap[word], count: (wrongMap[word].count||0) + 1} : {eng:word,pos,thai,count:1};
+      saveWrong();
+      showCorrectAndDisable(thai);
+      nextBtn.disabled = false;
+    }
+
+    function showCorrectAndDisable(correctThai) {
+      Array.from(optionsEl.children).forEach(btn => {
+        if (btn.textContent.trim() === correctThai) btn.classList.add('correct');
+        btn.disabled = true;
+      });
+    }
+
+    function render() {
+      clearInterval(timerId);
+      if (current >= order.length) {
+        questionEl.textContent = `ทำครบทั้งหมดแล้ว! คะแนน: ${score} / ${order.length}`;
+        optionsEl.innerHTML = '';
+        progressEl.textContent = order.length;
+        timerEl.textContent = 0;
+        nextBtn.disabled = true;
+        return;
+      }
+      const idx = order[current];
+      const [eng, posThai] = entries[idx];
+      const sep = posThai.indexOf('—');
+      const pos = sep !== -1 ? posThai.slice(0, sep).trim() : '';
+      const thai = sep !== -1 ? posThai.slice(sep+1).trim() : posThai;
+      questionEl.innerHTML = `<strong>${eng}</strong><span class="pos">${pos}</span>`;
+      optionsEl.innerHTML = '';
+
+      // Build choices
+      const choices = [thai];
+      const tried = new Set([thai]);
+      while (choices.length < optionsCount) {
+        const r = entries[Math.floor(Math.random()*entries.length)][1];
+        const rsep = r.indexOf('—');
+        const rthai = rsep !== -1 ? r.slice(rsep+1).trim() : r;
+        if (!tried.has(rthai)) {
+          tried.add(rthai);
+          choices.push(rthai);
+        }
+      }
+      shuffle(choices);
+      choices.forEach(choice => {
+        const btn = document.createElement('button');
+        btn.className = 'opt';
+        btn.type = 'button';
+        btn.textContent = choice;
+        btn.addEventListener('click', () => {
+          clearInterval(timerId);
+          if (btn.disabled) return;
+          if (choice === thai) {
+            btn.classList.add('correct');
+            score++;
+            scoreEl.textContent = score;
+          } else {
+            btn.classList.add('wrong');
+            showCorrectAndDisable(thai);
+            wrongMap[eng] = wrongMap[eng] ? {...wrongMap[eng], count:(wrongMap[eng].count||0)+1} : {eng,pos,thai,count:1};
+            saveWrong();
+            wrongCountEl.textContent = Object.keys(wrongMap).length;
+          }
+          Array.from(optionsEl.children).forEach(b=>b.disabled=true);
+          nextBtn.disabled = false;
+        });
+        optionsEl.appendChild(btn);
+      });
+
+      progressEl.textContent = current+1;
+      scoreEl.textContent = score;
+      nextBtn.disabled = true;
+      startTimer();
+    }
+
+    nextBtn.addEventListener('click', () => {
+      current++;
+      render();
+    });
+
+    restartBtn.addEventListener('click', () => {
+      if (!confirm('เริ่มใหม่ (สุ่มลำดับและรีเซ็ตคะแนน)?')) return;
+      shuffle(order);
+      current = 0;
+      score = 0;
+      wrongMap = {};
+      saveWrong();
+      wrongCountEl.textContent = 0;
+      render();
+    });
+
+    reviewBtn.addEventListener('click', () => {
+      renderWrongList();
+      reviewDiv.style.display = 'block';
+    });
+
+    closeReviewBtn.addEventListener('click', () => {
+      reviewDiv.style.display = 'none';
+    });
+
+    function renderWrongList() {
+      wrongListEl.innerHTML = '';
+      const keys = Object.keys(wrongMap);
+      wrongCountEl.textContent = keys.length;
+      if (keys.length === 0) {
+        wrongListEl.innerHTML = '<div class="small">ยังไม่มีคำที่ตอบผิด</div>';
+        return;
+      }
+      keys.sort((a,b)=> (wrongMap[b].count||0) - (wrongMap[a].count||0));
+      keys.forEach(k => {
+        const it = wrongMap[k];
+        const div = document.createElement('div');
+        div.style.display='flex'; div.style.justifyContent='space-between'; div.style.padding='6px 0';
+        div.innerHTML = `<div><strong>${it.eng}</strong> <span class="pos">(${it.pos})</span><div class="small">${it.thai}</div></div>`;
+        const right = document.createElement('div');
+        right.style.display='flex'; right.style.gap='8px';
+        const badge = document.createElement('span'); badge.className='badge'; badge.textContent = `ผิด ${it.count||1}`;
+        const btn = document.createElement('button'); btn.className='btn ghost'; btn.textContent='ลบ'; btn.addEventListener('click', ()=>{ delete wrongMap[it.eng]; saveWrong(); renderWrongList(); });
+        right.appendChild(badge); right.appendChild(btn);
+        div.appendChild(right);
+        wrongListEl.appendChild(div);
+      });
+    }
+
+    exportBtn.addEventListener('click', () => {
+      const data = Object.values(wrongMap);
+      if (!data.length) return alert('ไม่มีคำผิดให้ export');
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'wrong_words.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+
+    clearWrongBtn.addEventListener('click', () => {
+      if (!confirm('ต้องการลบรายการคำที่ตอบผิดทั้งหมด?')) return;
+      wrongMap = {};
+      saveWrong();
+      renderWrongList();
+      wrongCountEl.textContent = 0;
+    });
+
+    // Utilities
+    function shuffle(arr){ for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} }
+
+    // Init
+    (function init(){
+      wrongCountEl.textContent = Object.keys(wrongMap).length;
+      render();
+    })();
+
+    // Auto-save on unload
+    window.addEventListener('beforeunload', () => {
+      saveWrong();
+    });
+  </script>
+</body>
+</html>
